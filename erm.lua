@@ -38,3 +38,5 @@ Connections.Aimbot = game:GetService("RunService").RenderStepped:Connect(functio
         Aimbot:LockOntoPlayer(Options.AimbotMethod.Value, Closest)
     end
 end)
+
+return Aimbot
