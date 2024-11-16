@@ -832,6 +832,13 @@ Groupboxes.SelfCheats:AddSlider("PromptReach", {
     Compact = true
 })
 
+Groupboxes.SelfCheats:AddDivider()
+
+Groupboxes.SelfCheats:AddToggle("InfUniversalKey", {
+    Text = "Infinite Items",
+    Default = false
+})
+
 
 Groupboxes.FE = Tabs.Fun:AddLeftGroupbox("FE")
 Groupboxes.FE:AddToggle("serverSideKillJeff", {
