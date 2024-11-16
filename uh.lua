@@ -205,9 +205,8 @@ Disposal.Light = Instance.new("SpotLight", PlayerVariables.Character.Head) do
     Disposal.Light.Brightness = 0
 end
 -- \ Functions \ --
-function getpadlockcode()
+function getpadlockcode(Paper)
     local PlayerGUI = PlayerVariables.Player
-    local Paper = workspace.CurrentRooms:FindFirstChild("50") and (workspace.CurrentRooms:FindFirstChild("50"):FindFirstChild("LibraryHintPaper", true) or workspace.CurrentRooms:FindFirstChild("50"):FindFirstChild("LibraryHintPaperHard", true)) or nil
 
     if not Paper then
         return
@@ -216,6 +215,7 @@ function getpadlockcode()
     local Stored = {}
     local Code = ""
     local Count = 0
+    local Needed = Paper.Name == "LibraryHintPaperHard" and 10 or 5
 
     for _, v in pairs(Paper.UI:GetChildren()) do
         if v:IsA("ImageLabel") and tonumber(v.Name) then
@@ -225,14 +225,19 @@ function getpadlockcode()
 
     for _, v in pairs(Stored) do
         for index, value in pairs(PlayerGUI.PermUI.Hints:GetChildren()) do
-            if value.Name == "Icon" and value:IsA("ImageLabel") and value:FindFirstChild("TextLabel") then
+            if value.Name == "Icon" and value:IsA("ImageLabel") and value:FindFirstChildOfClass("TextLabel") then
                 if v == value.ImageRectOffset then
-                    Code = Code .. value.TextLabel.Text
+                    Code = Code .. value:FindFirstChildOfClass("TextLabel").Text
                 end
             end
         end
     end
-    return Code
+
+    Count = string.len(Code)
+
+    if Needed - Count > 0 then
+        Code = Code .. string.rep("_", Needed - Count)
+    end
 end
 
 type ESPArg = {
@@ -1182,9 +1187,11 @@ end)
 
 Toggles.autopl:OnChanged(function(value)
     if PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard") then
-        local code = getpadlockcode()
+        local paper = PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard")
+        local Needed = paper.Name == "LibraryHintPaperHard" and 10 or 5
+        local code = getpadlockcode(paper)
 
-        if #code:split("") >= 5 then
+        if string.len(code) == Needed then
             RemotesFolder.PL:FireServer(code)
         end
     end
@@ -1193,14 +1200,8 @@ end)
 Toggles.plcode:OnChanged(function(value)
     if value then
         if PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard") then
-            local code = getpadlockcode()
-            local Length = code:len()
-
-            local NeededNumber = IsFloor.HardMode and 10 or 5
-
-            local Missing = NeededNumber - Length
-
-            code = code .. string.rep("_", Missing)
+            local paper = PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard")
+            local code = getpadlockcode(paper)
 
             Library:Notify("The code is " .. code ".")
         end
@@ -2091,15 +2092,7 @@ end)
 Connections.Items = PlayerVariables.Character.ChildAdded:Connect(function(child: Tool)
     if Toggles.plcode.Value then
         if child.Name == "LibraryHintPaper" or child.Name == "LibraryHintPaperHard" then
-            local Needed = child.Name == "LibraryHintPaperHard" and 10 or 5
-            local code = getpadlockcode()
-            local Amount = code:len()
-
-            if Needed - Amount ~= 0 then
-                local Missing = Needed - Amount
-
-                code = code .. string.rep("_", Missing)
-            end
+            local code = getpadlockcode(child)
 
             notification("The code is " .. code ".", Toggles.NotificationSound.Value)
         end
@@ -2108,8 +2101,8 @@ Connections.Items = PlayerVariables.Character.ChildAdded:Connect(function(child:
     if Toggles.autopl.Value then
         if child.Name == "LibraryHintPaper" or child.Name == "LibraryHintPaperHard" then
             local Needed = child.Name == "LibraryHintPaperHard" and 10 or 5
-            local code = getpadlockcode()
-            local Amount = code:len()
+            local code = getpadlockcode(child)
+            local Amount = string.len(code)
 
             if Needed - Amount == 0 then
                 RemotesFolder.PL:FireServer(code)
