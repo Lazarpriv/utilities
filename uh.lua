@@ -1841,6 +1841,110 @@ Toggles.ViewmodelOffset:OnChanged(function(value)
                 v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
             end
         end
+
+        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+
+        task.spawn(function()
+            repeat
+                task.wait()
+            until not Toggles.ViewmodelOffset.Value
+
+            for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+                if v:IsA("Tool") then
+                    if v:GetAttribute("OGOffset") then
+                        v:SetAttribute("ToolOffset", v:GetAttribute("OGOffset"))
+                    end
+                end
+            end
+
+            for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
+                if v:IsA("Tool") then
+                    if v:GetAttribute("OGOffset") then
+                        v:SetAttribute("ToolOffset", v:GetAttribute("OGOffset"))
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+Options.XOffset:OnChanged(function(value)
+    if Toggles.ViewmodelOffset.Value then
+        for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+
+        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+    end
+end)
+
+Options.YOffset:OnChanged(function(value)
+    if Toggles.ViewmodelOffset.Value then
+        for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+
+        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+    end
+end)
+
+Options.ZOffset:OnChanged(function(value)
+    if Toggles.ViewmodelOffset.Value then
+        for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+
+        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
     end
 end)
 
@@ -2010,6 +2114,40 @@ Connections.Items = PlayerVariables.Character.ChildAdded:Connect(function(child:
             if Needed - Amount == 0 then
                 RemotesFolder.PL:FireServer(code)
             end
+        end
+    end
+    
+    if Toggles.ViewmodelOffset.Value then
+        for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+
+        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                if not v:GetAttribute("OGOffset") then
+                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+                end
+
+                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+            end
+        end
+    end
+end)
+
+Connections.Backpack = PlayerVariables.Player.Backpack.ChildAdded:Connect(function(child)
+    if Toggles.ViewmodelOffset.Value then
+        if child:IsA("Tool") then
+            if not child:GetAttribute("OGOffset") then
+                child:SetAttribute("OGOffset", child:GetAttribute("ToolOffset"))
+            end
+
+            child:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
         end
     end
 end)
