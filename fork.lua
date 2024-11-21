@@ -964,7 +964,7 @@ function Library.ESP.Highlight(args)
         MaxDistance = args.MaxDistance,
         StudsOffset = args.StudsOffset,
         Color = args.TextColor,
-        TextSize = args.TextSize
+        TextSize = args.TextSize,
 
         WasCreatedWithDifferentESP = true
     });
