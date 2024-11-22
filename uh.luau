@@ -2774,6 +2774,10 @@ Library:OnUnload(function()
     end
 
     Options.SpeedBoost:SetValue(0)
+    PlayerVariables.Character:SetAttribute("SpeedBoost", 0)
+    PlayerVariables.Character:SetAttribute("CanJump", false)
+    workspace.CurrentCamera.FieldOfView = 70
+    require(moduleScripts.MainGame).fovtarget = 70
 
     Library.Unloaded = true
 
