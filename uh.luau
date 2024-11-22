@@ -147,7 +147,7 @@ local ESPTable = {
 }
 
 local ESPFunctions = {}
-local executorname = identifyexecutor()
+local executorname = getexecutorname()
 local SupportTable = {
      [executorname] = {Require = false, FirePP = executorname ~= "Solara"}
 }
@@ -385,7 +385,7 @@ function ESPFunctions.SideEntityESP(entity: Model)
 end
 
 function ESPFunctions.DoorESP(room: Model)
-    if not door:IsA("Model") or not Toggles.DoorESP.Value then
+    if not room:IsA("Model") or not Toggles.DoorESP.Value then
         return
     end
 
@@ -400,7 +400,8 @@ function ESPFunctions.DoorESP(room: Model)
             local State = if Locked and not Opened then "[Locked]" elseif Opened then "[Opened]" else ""
             local Stinker = Door:WaitForChild("Sign"):FindFirstChild("SignText") or Door:WaitForChild("Sign"):FindFirstChild("Stinker")
             local RoomNum = Stinker.Text
-            local String = string.format("Door %s %s", RoomNum, State)
+            local RoomName = GetRoomName(room) or ""
+            local String = string.format("Door %s %s %s", RoomNum, RoomName, State)
 
             local DoorESP = ESPFunctions.ESP({
                 Object = RealDoor,
@@ -1942,8 +1943,6 @@ end)
 Toggles.DoorESP:OnChanged(function(value)
     if value then
         task.spawn(ESPFunctions.DoorESP, CurrentRoomModel)
-
-        task.spawn(ESPFunctions.DoorESP, NextRoomModel)
     else
         for _, v in pairs(ESPTable.Door) do
             v.Destroy()
@@ -2560,8 +2559,6 @@ Connections.RoomChanged = PlayerVariables.Player:GetAttributeChangedSignal("Curr
             end
 
             task.spawn(ESPFunctions.DoorESP, CurrentRoomModel)
-
-            task.spawn(ESPFunctions.DoorESP, NextRoomModel)
         end
 
         for i, v in pairs(Connections) do
@@ -2632,6 +2629,14 @@ Connections.RoomChanged = PlayerVariables.Player:GetAttributeChangedSignal("Curr
             task.spawn(ESPFunctions.HidingSpotESP, v)
 
             task.spawn(ESPFunctions.ObjectiveESP, v)
+
+            if v:IsA("ProximityPrompt") then
+                if not v:GetAttribute("RequiresSight") then v:SetAttribute("RequiresSight", v.RequiresLineOfSight) end
+                v.RequiresLineOfSight = not Toggles.PromptClip.Value
+                if not v:GetAttribute("OGDistance") then v:SetAttribute("OGDistance", v.MaxActivationDistance) end
+                v.MaxActivationDistance = v:GetAttribute("OGDistance") * Options.PromptReach.Value
+                table.insert(GamePrompts, v)
+            end
         end
     
 
