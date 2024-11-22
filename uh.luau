@@ -557,6 +557,7 @@ function ESPFunctions.PlayerESP(player: Player)
         Type = "Player"
     })
 end
+
 function IsMultiplayer()
     return #game.Players:GetPlayers() > 1
 end
@@ -1926,7 +1927,7 @@ Toggles.EntityESP:OnChanged(function(value)
             task.spawn(ESPFunctions.EntityESP, v)
         end
 
-        for _, v in pairs(CurrentRoomModel:GetChildren()) do
+        for _, v in pairs(CurrentRoomModel:GetDescendants()) do
             task.spawn(ESPFunctions.SideEntityESP, v)
         end
     else
@@ -2427,7 +2428,9 @@ Connections.EntityHandler = workspace.ChildAdded:Connect(function(child: Model)
         return;
     end
 
-    task.spawn(ESPFunctions.EntityESP, child)
+    if IsEntity[child.Name] and IsEntity[child.Name][1] == "Entity" and DistanceFromCharacter(child) < 750 then
+        task.spawn(ESPFunctions.EntityESP, child)
+    end
 
     if NotifyTable[ShortName(child)] and child:GetPivot().Position.Y > -10000 and Options.EntityNotifier.Value[ShortName(child)] then
         Library:Notification(NotifyTable[ShortName(child)].Notification)
@@ -2778,6 +2781,12 @@ Library:OnUnload(function()
     PlayerVariables.Character:SetAttribute("CanJump", false)
     workspace.CurrentCamera.FieldOfView = 70
     require(moduleScripts.MainGame).fovtarget = 70
+
+    for _, type in pairs(ESPTable) do
+        for _, inst in pairs(v) do
+            inst.Destroy()
+        end
+    end
 
     Library.Unloaded = true
 
