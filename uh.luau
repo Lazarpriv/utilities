@@ -2037,10 +2037,6 @@ Options.EntityESPColor:OnChanged(function(value)
             FillColor = value,
             OutlineColor = value,
             TextColor = value,
-
-            Tracer = {
-                Color = value
-            }
         })
     end
 end)
