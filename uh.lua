@@ -1,4 +1,5 @@
--- \\ DIVINE HUB V1 (or V2 idk first one was ass) \\ --
+
+    -- \\ DIVINE HUB V1 (or V2 idk first one was ass) \\ --
 
 -- \ To check if the script was already loaded \ -
 if getgenv().Loaded then
@@ -16,10 +17,10 @@ local repo = "https://raw.githubusercontent.com/deividcomsono/LinoriaLib/refs/he
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/MS-ESP/refs/heads/main/source.lua"))()
+local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.lua"))()
 
 
--- \ Really clear purpose, unloads the script, in a RS connection Library:Unload() is run whenever this variable is set to false \ --
+
 getgenv().ForceUnload = function()
     getgenv().Loaded = false
 end
@@ -43,7 +44,7 @@ PlayerVariables.CollisionClone.Parent = PlayerVariables.Collision.Parent
 PlayerVariables.CollisionClone.Name = "CollisionFake"
 
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local EntityModules: Folder = ReplicatedStorage.ClientModules.EntityModules
 local Glitch: ModuleScript = EntityModules.Glitch
 local Void: ModuleScript = EntityModules.Void
@@ -61,22 +62,23 @@ local ToExclude = {
     "Elevator1",
     "MinesFinale"
 }
-
 local IsFloor = {
-    HardMode = Floor.Value == "Fools",
-    Hotel = Floor.Value == "Hotel",
-    Mines = Floor.Value == "Mines",
-    Retro = Floor.Value == "Retro",
-    Backdoor = Floor.Value == "Backdoor",
-    Rooms = Floor.Value == "Rooms"
+    HardMode = Floor == "Fools",
+    Hotel = Floor == "Hotel",
+    Mines = Floor == "Mines",
+    Retro = Floor == "Retro",
+    Backdoor = Floor == "Backdoor",
+    Rooms = Floor == "Rooms"
 }
 local CurrentRoom = tostring(PlayerVariables.Player:GetAttribute("CurrentRoom"))
 
 -- \ Self-explanatory \ --
 if workspace.CurrentRooms[CurrentRoom] == nil then
-    CurrentRoom = gameData.LatestRoom.Value
+    CurrentRoom = tostring(gameData.LatestRoom.Value)
 end
+local CurrentRoomModel: Model = workspace.CurrentRooms[CurrentRoom]
 local NextRoom = tostring(PlayerVariables.Player:GetAttribute("CurrentRoom") + 1)
+local NextRoomModel: Model = workspace.CurrentRooms:FindFirstChild(NextRoom)
 local Objectives = {
     ["LiveHintBook"] = {ESPName = "Book"},
     ["LiveBreakerPolePickup"] = {ESPName = "Breaker"},
@@ -91,24 +93,29 @@ local Objectives = {
     ["ElectricalKeyObtain"] = {ESPName = "Electrical Key"},
     ["Candy"] = {ESPName = "Candy"}
 }
+local Fly = {
+    BodyGyro = nil,
+    BodyVelocity = nil,
+    Enabled = false
+}
 local BodyProperties = {"HeadColor3", "LeftLegColor3", "LeftArmColor3", "RightLegColor3", "RightArmColor3", "TorsoColor3"}
-local uis = game:GetService("UserInputService")
-local RemotesFolder: Folder = game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") or ReplicatedStorage:FindFirstChild("EntityInfo");
-local PxPromptService = game:GetService("ProximityPromptService")
+local uis: UserInputService = cloneref(game:GetService("UserInputService"))
+local RemotesFolder: Folder = ReplicatedStorage:FindFirstChild("RemotesFolder") or ReplicatedStorage:FindFirstChild("EntityInfo");
+local PxPromptService = cloneref(game:GetService("ProximityPromptService"))
 local Entity: Folder = game.ReplicatedStorage.Entities
 local hooks = {}
 local Connections = {}
 local screechModel: Model = Entity:WaitForChild("Screech")
 local timothyModel: Model = Entity:WaitForChild("Spider")
-local modules: Folder = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.RemoteListener.Modules
+local modules: Folder = game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.RemoteListener.Modules
 local A90: ModuleScript = modules.A90
 local Dread: ModuleScript = modules.Dread
 local moduleScripts = {
     MainGame = PlayerVariables.Player.PlayerGui.MainUI.Initiator.Main_Game
 }
 local screechModule: ModuleScript = moduleScripts.MainGame.RemoteListener.Modules.Screech
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local RunService: RunService = cloneref(game:GetService("RunService"))
+local TweenService: TweenService = cloneref(game:GetService("TweenService"))
 local IsBypass = false
 local NotifyTable = {
     ["Rush"] = {Notification = "Rush has spawned."},
@@ -118,7 +125,8 @@ local NotifyTable = {
     ["A-60"] = {Notification = "A-60 has spawned."},
     ["A-120"] = { Notification = "A-120 has spawned."},
     ["Blitz"] = {Notification = "Blitz has spawned"},
-    ["Lookman"] = {Notification = "Lookman has spawned."}
+    ["Lookman"] = {Notification = "Lookman has spawned."},
+    ["Gloombat Swarm"] = {Notification = "Gloombats have spawned."}
 }
 local camera: Camera = workspace.Camera 
 local currentcam: Camera = workspace.CurrentCamera
@@ -130,6 +138,7 @@ local ESPTable = {
     SideEntity = {},
     Door = {},
     Item = {},
+    DroppedItem = {},
     Player = {},
     Gold = {},
     Chest = {},
@@ -140,25 +149,21 @@ local ESPTable = {
 local ESPFunctions = {}
 local executorname = identifyexecutor()
 local SupportTable = {
-     [executorname] = {Require = false, FirePP = false}
+     [executorname] = {Require = false, FirePP = executorname ~= "Solara"}
 }
 
 local IsEntity = {
-    Names = {
-        "Snare",
-        "RushMoving",
-        "AmbushMoving",
-        "FigureRagdoll",
-        "FigureRig",
-        "BananaPeel",
-        "Eyes",
-        "JeffTheKiller",
-        "GloomPile",
-        "GiggleCeiling",
-        "BackdoorLookman",
-        "BackdoorRush",
-        "GrumbleRig"
-    }
+    ["RushMoving"] = {"Entity"},
+    ["AmbushMoving"] = {"Entity"},
+    ["FigureRagdoll"] = {"SideEntity"},
+    ["FigureRig"] = {"SideEntity"},
+    ["Eyes"] = {"Entity"},
+    ["JeffTheKiller"] = {"Entity"},
+    ["GloomPile"] = {"SideEntity"},
+    ["GiggleCeiling"] = {"Entity"},
+    ["BackdoorLookman"] = {"Entity"},
+    ["BackdoorRush"] = {"Entity"},
+    ["GrumbleRig"] = {"SideEntity"}
 }
 local ShortNameTable = {
     "Moving",
@@ -175,7 +180,8 @@ local ShortNameTable = {
     "Backdoor",
     "Peel",
     "Clone",
-    "Wall"
+    "Wall",
+    "Pickup"
 }
 local ShortNameExclusions = {
     ["JeffTheKiller"] = {Shortened = "Jeff"},
@@ -189,13 +195,29 @@ local FloorHidingSpot = {
     ["Rooms"] = "Locker",
     ["Mines"] = "Locker"
 }
+local AutoInteractPrompts = {
+    ["ModulePrompt"] = 7,
+    ["ActivateEventPrompt"] = 6,
+    ["FusesPrompt"] = 5,
+    ["LeverPrompt"] = 4,
+    ["LootPrompt"] = 3,
+    ["HerbPrompt"] = 2,
+    ["UnlockPrompt"] = 1
+}
+local GamePrompts = {}
+-- \ Add current game prompts into the table \ --
+for _, v in pairs(workspace.CurrentRooms:GetDescendants()) do
+    if v:IsA("ProximityPrompt") then
+        table.insert(GamePrompts, v)
+    end
+end
 local notificationSound = Instance.new("Sound")
 
 notificationSound.SoundId = "rbxassetid://4590657391"
-notificationSound.Parent = game:GetService("SoundService")
+notificationSound.Parent = cloneref(game:GetService("SoundService"))
 notificationSound.Looped = false
 notificationSound.Volume = 2
-notificationSound.Name = "DV"
+notificationSound.Name = "Notify"
 
 Disposal.Light = Instance.new("SpotLight", PlayerVariables.Character.Head) do
     Disposal.Light.Range = 60
@@ -205,47 +227,82 @@ Disposal.Light = Instance.new("SpotLight", PlayerVariables.Character.Head) do
     Disposal.Light.Brightness = 0
 end
 -- \ Functions \ --
-function getpadlockcode(Paper)
-    local PlayerGUI = PlayerVariables.Player
+function PadlockCode(Paper: Tool, Usage: string, Player: Player)
+    assert(Paper:IsA("Tool"), "Library Paper was not a tool.")
+    assert(typeof(Usage) == "string", "Usage for PadlockCode() was not a string.")
 
-    if not Paper then
-        return
+    if Player == nil then
+        Player = PlayerVariables.Player
     end
 
-    local Stored = {}
-    local Code = ""
-    local Count = 0
-    local Needed = Paper.Name == "LibraryHintPaperHard" and 10 or 5
+    local Code = {}
 
-    for _, v in pairs(Paper.UI:GetChildren()) do
-        if v:IsA("ImageLabel") and tonumber(v.Name) then
-            Stored[tonumber(v.Name)] = v.ImageRectOffset
-        end
-    end
-
-    for _, v in pairs(Stored) do
-        for index, value in pairs(PlayerGUI.PermUI.Hints:GetChildren()) do
-            if value.Name == "Icon" and value:IsA("ImageLabel") and value:FindFirstChildOfClass("TextLabel") then
-                if v == value.ImageRectOffset then
-                    Code = Code .. value:FindFirstChildOfClass("TextLabel").Text
+    for _, v in pairs(Player.PlayerGui.PermUI.Hints:GetChildren()) do
+        if v.Name == "Icon" then
+            for _, x in pairs(Paper.UI:GetChildren()) do
+                if tonumber(x.Name) then
+                    local ins = {tonumber(x.Name), "_"}
+                    table.insert(Code, tonumber(x.Name), ins)
                 end
             end
         end
     end
 
-    Count = string.len(Code)
 
-    if Needed - Count > 0 then
-        Code = Code .. string.rep("_", Needed - Count)
+    for i, v in ipairs(Code) do
+        if typeof(v) == "table" then
+            for _, x in pairs(Player.PlayerGui.PermUI.Hints:GetChildren()) do
+                if x.Name == "Icon" then
+                    if x.ImageRectOffset == Paper.UI[v[1]].ImageRectOffset then
+                        Code[i] = x:FindFirstChild("TextLabel").Text
+                    end
+                end
+            end
+        end
     end
+
+    for i, v in ipairs(Code) do
+        if typeof(v) == "table" then
+            Code[i] = "_"
+        end
+    end
+
+    local Concatenated = table.concat(Code)
+    local Needed = Paper.Name == "LibraryHintPaperHard" and 10 or 5
+    local Count = Concatenated:len()
+
+    if Count > Needed then
+        Concatenated = Concatenated:sub(1, Needed)
+        Count = Concatenated:len()
+    end
+
+    if Usage == "ToNotify" and Concatenated ~= "" and not ConsecutiveDigits(Concatenated) then
+        Library:Notification("The code is " .. Concatenated .. ".")
+    elseif Usage == "FireServer" then
+        if Count == Needed then
+            RemotesFolder.PL:FireServer(Concatenated)
+        end
+    end
+
+    return Concatenated
 end
+
+function ConsecutiveDigits(str: string)
+    return string.match(str, "(%d)%1%1+") ~= nil
+end
+
+function DistanceFromCharacter(point: Instance)
+    return (PlayerVariables.Character:GetPivot().Position - point:GetPivot().Position).Magnitude
+end
+
 
 type ESPArg = {
     Type: string,
     Object: Instance,
     Text: string,
     Color: Color3,
-    IsEntity: boolean
+    IsEntity: boolean | nil,
+    TextModel: Instance | nil
 }
 
 function ESPFunctions.ESP(Properties: ESPArg)
@@ -253,8 +310,8 @@ function ESPFunctions.ESP(Properties: ESPArg)
     local Args = {
         Object = Properties.Object,
         Text = Properties.Text,
+        TextModel = Properties.TextModel or nil,
         Color = Properties.Color,
-        TextSize = Options.TextSize.Value,
         Type = Properties.Type,
         OnDestroy = Properties.OnDestroy or nil,
         IsEntity = Properties.IsEntity or false
@@ -262,13 +319,18 @@ function ESPFunctions.ESP(Properties: ESPArg)
 
     local ESPSave = ESPLibrary.ESP.Highlight({
         Model = Args.Object,
+        TextModel = Args.TextModel,
         Name = Args.Text,
         FillColor = Args.Color,
         OutlineColor = Args.Color,
         TextColor = Args.Color,
-        TextSize = Args.TextSize,
+        TextSize = Options.TextSize.Value or 22,
         
-        OnDestroy = Args.OnDestroy,
+        OnDestroy = Args.OnDestroy or function()
+            if Args.IsEntity and Args.Object.PrimaryPart then
+                Args.Object.PrimaryPart.Transparency = 1
+            end
+        end,
 
         Tracer = {
             Enabled = true,
@@ -278,12 +340,224 @@ function ESPFunctions.ESP(Properties: ESPArg)
     })
 
     if Args.IsEntity then
-        Args.Object.PrimaryPart.Transparency = 0
+        Args.Object.PrimaryPart.Transparency = 0.99
     end
 
     table.insert(ESPTable[Properties.Type], ESPSave)
 
     return ESPSave
+end
+
+function ESPFunctions.EntityESP(entity: Model)
+    if not entity:IsA("Model") or not Toggles.EntityESP.Value then
+        return
+    end
+
+    if IsEntity[entity.Name] then
+        if IsEntity[entity.Name][1] == "Entity" then
+            ESPFunctions.ESP({
+                Object = entity,
+                Text = ShortName(entity),
+                Color = Options.EntityESPColor.Value,
+                IsEntity = entity.Name ~= "JeffTheKiller",
+                Type = "Entity"
+            })
+        end
+    end
+end
+
+function ESPFunctions.SideEntityESP(entity: Model)
+    if not entity:IsA("Model") or not Toggles.EntityESP.Value then
+        return
+    end
+
+    if IsEntity[entity.Name] then
+        if IsEntity[entity.Name][1] == "SideEntity" then
+            ESPFunctions.ESP({
+                Object = entity,
+                Text = ShortName(entity),
+                TextModel = if entity.Name == "GiggleCeiling" then entity.Root elseif (entity.Name == "FigureRig" or entity.Name == "FigureRagdoll") then entity.Torso else nil,
+                Color = Options.EntityESPColor.Value,
+                Type = "SideEntity"
+            })
+        end
+    end
+end
+
+function ESPFunctions.DoorESP(room: Model)
+    if not door:IsA("Model") or not Toggles.DoorESP.Value then
+        return
+    end
+
+    local Door: Model = room:WaitForChild("Door", 5)
+
+    if Door then
+        local RealDoor: BasePart = Door:WaitForChild("Door", 5)
+
+        if RealDoor then
+            local Locked = room:GetAttribute("RequiresKey")
+            local Opened = Door:GetAttribute("Opened")
+            local State = if Locked and not Opened then "[Locked]" elseif Opened then "[Opened]" else ""
+            local Stinker = Door:WaitForChild("Sign"):FindFirstChild("SignText") or Door:WaitForChild("Sign"):FindFirstChild("Stinker")
+            local RoomNum = Stinker.Text
+            local String = string.format("Door %s %s", RoomNum, State)
+
+            local DoorESP = ESPFunctions.ESP({
+                Object = RealDoor,
+                Text = String,
+                Color = Options.DoorESPColor.Value,
+                Type = "Door",
+
+                OnDestroy = function()
+                    if Connections["Door " .. RoomNum] then
+                        Connections["Door " .. RoomNum]:Disconnect()
+                    end
+                end
+            })
+
+            Connections["Door " .. RoomNum] = Door:GetAttributeChangedSignal("Opened"):Connect(function()
+                if DoorESP and Door and RealDoor then
+                    DoorESP.SetText(string.format("Door %s %s", RoomNum, "[Opened]"))
+                end
+            end)
+        end
+    end
+end
+
+function ESPFunctions.ObjectiveESP(objective: Model)
+    if not objective:IsA("Model") or not Toggles.ObjectiveESP.Value then
+        return
+    end
+
+    if not Objectives[objective.Name] then
+        return
+    end
+
+    if objective.Name == "TimerLever" then
+        ESPFunctions.ESP({
+            Object = objective,
+            Text = string.format("Time Lever [+%s]", objective.TakeTimer.TextLabel.Text),
+            Color = Options.ObjectiveESPColor.Value,
+            Type = "Objective"
+        })
+    elseif objective.Name == "WaterPump" then
+        local wheel = objective:WaitForChild("Wheel", 5)
+        local OnFrame = objective:FindFirstChild("OnFrame", true)
+
+        if wheel and (OnFrame and OnFrame.Visible) then
+            local Random = RandomString()
+
+            local ESPInstance = ESPFunctions.ESP({
+                Object = wheel,
+                Text = "Valve",
+                Color = Options.ObjectiveESP.Value,
+                Type = "Objective"
+            })
+        end
+    elseif objective.Name == "MinesAnchor" then
+        local sign = objective:WaitForChild("Sign", 5)
+
+        if sign and sign:FindFirstChild("TextLabel") then
+            ESPFunctions.ESP({
+                Object = objective,
+                Text = string.format("Anchor %s", sign.TextLabel.Text),
+                Color = Options.ObjectiveESPColor.Value,
+                Type = "Objective"
+            })
+        end
+    end
+
+    if Objectives[objective.Name] and (objective.Name ~= "TimerLever" and objective.Name ~= "WaterPump" and objective.Name ~= "MinesAnchor") then
+        ESPFunctions.ESP({
+            Object = objective,
+            Text = Objectives[objective.Name].ESPName,
+            Color = Options.ObjectiveESPColor.Value,
+            Type = "Objective"
+        })
+    end
+end
+
+function ESPFunctions.ItemESP(item: Model, dropped: boolean)
+    if not isItem(item) or not Toggles.ItemESP.Value then
+        return
+    end
+
+    ESPFunctions.ESP({
+        Object = item,
+        Text = ShortName(item),
+        Color = Options.ItemESPColor.Value,
+        Type = if dropped then "DroppedItem" else "Item"
+    })
+end
+
+function ESPFunctions.GoldESP(gold: Model)
+    if not gold:IsA("Model") or not Toggles.GoldESP.Value then
+        return
+    end
+
+    if gold.Name == "GoldPile" then
+        ESPFunctions.ESP({
+            Object = gold,
+            Text = string.format("Gold [%s]", gold:GetAttribute("GoldValue")),
+            Color = Options.GoldESPColor.Value,
+            Type = "Gold"
+        })
+    end
+end
+
+function ESPFunctions.ChestESP(storage: Model)
+    if not storage:IsA("Model") or not Toggles.ChestESP.Value then
+        return
+    end
+
+    if storage.Name:find("Chest") or storage.Name == "Toolshed_Small" or storage:GetAttribute("Storage") == "ChestBox" then
+        local State = if storage:GetAttribute("Locked") then "[Locked]" else ""
+        local CleanerName = storage.Name:gsub("_Small", ""):gsub("Box", ""):gsub("Locked", ""):gsub("_Vine", "") .. " %s"
+        local String = string.format(CleanerName, State)
+
+        ESPFunctions.ESP({
+            Object = storage,
+            Text = String,
+            Color = Options.ChestESPColor.Value,
+            Type = "Chest"
+        })
+    end
+end
+
+function ESPFunctions.HidingSpotESP(spot: Model)
+    if not spot:IsA("Model") or not Toggles.HidingSpotsESP.Value then
+        return
+    end
+
+    if spot.Name == "Rooms_Locker" or spot.Name == "Retro_Wardrobe" or spot:GetAttribute("LoadModule") == "Bed" or spot:GetAttribute("LoadModule") == "Wardrobe" then
+        local IsBed = spot.Name == "Bed"
+        local String = if IsBed then "Bed" else FloorHidingSpot[Floor]
+
+        ESPFunctions.ESP({
+            Object = spot,
+            Text = String,
+            Color = Options.HidingSpotESPColor.Value,
+            Type = "HidingSpot"
+        })
+    end
+end
+
+function ESPFunctions.PlayerESP(player: Player)
+    if not player:IsA("Player") or player == PlayerVariables.Player or not Toggles.PlayerESP.Value then
+        return
+    end
+
+    local char = player.Character or player.CharacterAdded:Wait()
+
+    ESPFunctions.ESP({
+        Object = char,
+        Text = player.DisplayName,
+        Color = Options.PlayerESPColor.Value,
+        Type = "Player"
+    })
+end
+function IsMultiplayer()
+    return #game.Players:GetPlayers() > 1
 end
 
 -- \ Checking support for the main features the script needs \ --
@@ -296,45 +570,27 @@ end)
 
 local hasrequire = if succ then true else false
 
-function replacedfirepp(prompt: ProximityPrompt, lookToPrompt, doNotDoInstant)
-    if not prompt:IsA("ProximityPrompt") then
-        return error("ProximityPrompt expected, got " .. typeof(prompt))
+SupportTable[executorname].Require = hasrequire
+
+getgenv().fireproximityprompt = if SupportTable[executorname].FirePP then fireproximityprompt else function(ProximityPrompt, Amount, Skip)
+    assert(ProximityPrompt, "Argument #1 Missing or nil")
+    assert(typeof(ProximityPrompt) == "Instance" and ProximityPrompt:IsA("ProximityPrompt"), "Attempted to fire a Value that is not a ProximityPrompt")
+
+    local HoldDuration = ProximityPrompt.HoldDuration
+    local RequiresSight = ProximityPrompt.RequiresLineOfSight
+    if Skip then
+        ProximityPrompt.HoldDuration = 0
     end
 
-    local connection
-    local promptPosition = prompt.Parent:GetPivot().Position
+    ProximityPrompt.RequiresLineOfSight = false
 
-    local originalEnabled = prompt.Enabled
-    local originalHold = prompt.HoldDuration
-    local originalLineOfSight = prompt.RequiresLineOfSight
-    local originalCamCFrame = workspace.CurrentCamera.CFrame
-    
-    prompt.Enabled = true
-    prompt.RequiresLineOfSight = false
-    if doNotDoInstant ~= true then
-        prompt.HoldDuration = 0
+    for i = 1, Amount or 1 do
+        ProximityPrompt:InputHoldBegin()
+        task.wait(ProximityPrompt.HoldDuration + 0.05)
+        ProximityPrompt:InputHoldEnd()
     end
-
-    if lookToPrompt == true then
-        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-        connection = workspace.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(function()
-            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-        end)
-
-        task.wait()
-    end
-
-    prompt:InputHoldEnd()
-    prompt:InputHoldBegin()
-    task.wait(prompt.HoldDuration + 0.05)
-    prompt:InputHoldEnd()
-
-    if connection then connection:Disconnect() end
-
-    prompt.Enabled = originalEnabled
-    prompt.HoldDuration = originalHold
-    prompt.RequiresLineOfSight = originalLineOfSight
-    if lookToPrompt == true then workspace.CurrentCamera.CFrame = originalCamCFrame end
+    ProximityPrompt.HoldDuration = HoldDuration
+    ProximityPrompt.RequiresLineOfSight = RequiresSight
 end
 
 
@@ -394,6 +650,13 @@ function SpeedBypass()
     end)
 end
 
+function Library:Notification(string: string)
+    Library:Notify(string)
+
+    if Toggles.NotificationSound.Value then
+        notificationSound:Play()
+    end
+end
 
 
 
@@ -414,49 +677,49 @@ function SetTouch(obj: Instance, CanTouch: boolean)
     end
 end
 
-function deleteTriggerEventCollision(room)
-    if not PlayerVariables.Character or not PlayerVariables.HumanoidRootPart then
-        return
-    end
+function SetupDeleteSeek(trigger: BasePart)
+    if Toggles.NoSeekFE.Value then
+        Library:Notification("Attempting to delete Seek...")
 
-    for _, v in pairs(room:GetChildren()) do
-        if v.Name == "TriggerEventCollision" then
-            for index, child in pairs(v:GetChildren()) do
-                if firetouchinterest then
+        task.delay(1, function()
+            PlayerVariables.HumanoidRootPart.Anchored = false
+        end)
 
-                    task.delay(0.5, function()
-                        PlayerVariables.HumanoidRootPart.Anchored = false
-                    end)
+        task.delay(2, function()
+            if trigger:IsDescendantOf(workspace) then
+                Library:Notification("Script was unable to delete Seek on the server. Please check the console.")
+            end
+        end)
 
-                    task.delay(2, function()
-                        if child:IsDescendantOf(workspace) then
-                            Library:Notify("Failed to delete Seek.")
-                        end
-                    end)
-                    Library:Notify("Deleting Seek...")
-                    PlayerVariables.HumanoidRootPart.Anchored = true
-                    task.spawn(function()
-                        repeat
-                            firetouchinterest(child, PlayerVariables.HumanoidRootPart, 1)
-                            task.wait()
-                            firetouchinterest(child, PlayerVariables.HumanoidRootPart, 0)
-                            task.wait()
-                        until not Toggles.NoSeekFE.Value or not child:IsDescendantOf(workspace)
+        PlayerVariables.HumanoidRootPart.Anchored = true
 
-                        if not child:IsDescendantOf(workspace) then
-                            Library:Notify("Seek has been deleted.")
-                        else
-                            Library:Notify("Failed to delete Seek.")
-                        end
-                    end)
+        task.spawn(function()
+            if firetouchinterest then
+                    repeat
+                        firetouchinterest(trigger, PlayerVariables.HumanoidRootPart, 1)
+                        task.wait()
+                        firetouchinterest(trigger, PlayerVariables.HumanoidRootPart, 0)
+                    until not trigger:IsDescendantOf(workspace) or not Toggles.NoSeekFE.Value
+
+                    if not trigger:IsDescendantOf(workspace) then
+                        Library:Notification("Successfully deleted Seek.")
+                    end
+            else
+                repeat
+                    task.wait()
+                    trigger.Position = PlayerVariables.HumanoidRootPart.Position
+                until not trigger:IsDescendantOf(workspace) or not Toggles.NoSeekFE.Value
+
+                if not trigger:IsDescendantOf(workspace) then
+                    Library:Notification("Successfully deleted Seek.")
                 end
             end
-        end
+        end)
     end
 end
 
 
-function ShortName(v)
+function ShortName(v: Instance)
     local Ret = v.Name
 
     for _, element in pairs(ShortNameTable) do
@@ -467,17 +730,76 @@ function ShortName(v)
         Ret = ShortNameExclusions[v.Name].Shortened
     end
 
+    if v.Name == "PickupItem" and v.Parent.Name == "50" then
+        Ret = "Library Paper"
+    end
+
+    if v.Name:find("(%l)(%u)") then
+        Ret = Ret:gsub("(%l)(%u)", "%1 %2")
+    end
+
     if v.Name == "RushMoving" and v.PrimaryPart.Name ~= "RushNew" and IsFloor.HardMode then
         Ret = v.PrimaryPart.Name
     end
 
+    if v.Name == "GloombatSwarm" then
+        Ret = "Gloombat Swarm"
+    end
+
     return Ret
+end
+
+function AvailablePrompt(prompt: ProximityPrompt)
+    if not prompt or not prompt.Parent then
+        return false
+    end
+
+    if not prompt:IsA("ProximityPrompt") then
+        return false
+    end
+
+    if prompt.Parent:GetAttribute("JeffShop") then
+        return false
+    end
+
+    if prompt.Parent:GetAttribute("PropType") then
+        if prompt.Parent:GetAttribute("PropType") == "Heal" and PlayerVariables.Humanoid.Health == 100 then
+            return false
+        end
+    end
+
+    if prompt.KeyboardKeyCode ~= Enum.KeyCode.E then
+        return false
+    end
+
+    if not prompt.Enabled then
+        return false
+    end
+
+    if prompt.Parent.Name == "Retro_Wardrobe" or prompt.Parent.Name == "MinesAnchor" then
+        return false
+    end
+
+    if DistanceFromCharacter(prompt.Parent) > prompt.MaxActivationDistance then
+        return false
+    end
+
+    if prompt:GetAttribute("Interactions" .. PlayerVariables.Character.Name) and prompt.Parent.Name ~= "Lock" and not prompt:FindFirstAncestor("MinesGenerator") and prompt.Parent.Parent.Name ~= "MinesGateButton" and not prompt.Parent:GetAttribute("Locked") then
+        return false
+    end
+
+    if prompt:FindFirstAncestor("KeyObtainFake") or prompt:FindFirstAncestor("Padlock") then
+        return false
+    end
+
+    return AutoInteractPrompts[prompt.Name] ~= nil
 end
 
 function GetRoomName(room)
     local OriginalName = room:GetAttribute("RawName")
     local FirstPattern = "(%l)(%u)"
     local SecondPattern = "(%l)_(%u)"
+    local ThirdPattern = "MT"
     local PrettifiedName = OriginalName
 
     if string.find(PrettifiedName, FirstPattern) then
@@ -488,6 +810,10 @@ function GetRoomName(room)
         PrettifiedName = PrettifiedName:gsub("_", " ")
     end
 
+    if string.find(PrettifiedName, ThirdPattern) then
+        PrettifiedName = PrettifiedName:gsub(ThirdPattern, "")
+    end
+
     if string.find(PrettifiedName, "%d") then
         PrettifiedName = PrettifiedName:gsub("%d", "")
     end
@@ -495,7 +821,69 @@ function GetRoomName(room)
     return PrettifiedName
 end
 
+function Fly:Start()
+    Fly.Enabled = true
+    
+    Fly.BodyGyro = Instance.new("BodyGyro", PlayerVariables.HumanoidRootPart)
+    Fly.BodyVelocity = Instance.new("BodyVelocity", PlayerVariables.HumanoidRootPart)
+    Fly.BodyGyro.P = 9e4
+    Fly.BodyGyro.MaxTorque = Vector3.one * 9e9
+    Fly.BodyGyro.CFrame = workspace.CurrentCamera.CFrame
+    Fly.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    Fly.BodyVelocity.MaxForce = Vector3.one * 9e9
 
+    Connections["FlyConnection"] = RunService.RenderStepped:Connect(function()
+        if Fly.Enabled then
+            local direction = Vector3.new(0, 0, 0)
+
+            if uis:IsKeyDown(Enum.KeyCode.W) and not uis:GetFocusedTextBox() then
+                direction += (workspace.CurrentCamera.CFrame.LookVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.S) and not uis:GetFocusedTextBox() then
+                direction -= (workspace.CurrentCamera.CFrame.LookVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.A) and not uis:GetFocusedTextBox() then
+                direction -= (workspace.CurrentCamera.CFrame.RightVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.D) and not uis:GetFocusedTextBox() then
+                direction += (workspace.CurrentCamera.CFrame.RightVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.Space) and not uis:GetFocusedTextBox() then
+                direction += (workspace.CurrentCamera.CFrame.UpVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.LeftShift) and not uis:GetFocusedTextBox() then
+                direction -= (workspace.CurrentCamera.CFrame.UpVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.E) and not uis:GetFocusedTextBox() then
+                direction += (workspace.CurrentCamera.CFrame.UpVector * Options.FlySpeed.Value)
+            end
+            if uis:IsKeyDown(Enum.KeyCode.Q) and not uis:GetFocusedTextBox() then
+                direction -= (workspace.CurrentCamera.CFrame.UpVector * Options.FlySpeed.Value)
+            end
+            
+            Fly.BodyVelocity.Velocity = direction
+            Fly.BodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end
+    end)
+end
+
+function Fly:Stop()
+    Fly.Enabled = false
+
+    if Connections["FlyConnection"] then
+        Connections["FlyConnection"]:Disconnect()
+    end
+
+    if Fly.BodyGyro then
+        Fly.BodyGyro:Destroy()
+        Fly.BodyGyro = nil
+    end
+    
+    if Fly.BodyVelocity then
+        Fly.BodyVelocity:Destroy()
+        Fly.BodyVelocity = nil
+    end
+end
 
 -- \ UI Code \ --
 local Window = Library:CreateWindow({
@@ -504,7 +892,7 @@ local Window = Library:CreateWindow({
     AutoShow = true,
     TabPadding = 8,
     MenuFadeTime = 0.5,
-    ShowCustomCursor = false
+    ShowCustomCursor = true
 })
 
 
@@ -542,9 +930,20 @@ Groupboxes.Automation:AddToggle("autopl", {
 })
 Groupboxes.Automation:AddToggle("AutoBreakerBox", {
     Text = "Auto Breaker Box",
-    Default = false
+    Default = false,
+    Visible = IsFloor.Hotel or IsFloor.HardMode
 })
 Groupboxes.Automation:AddDivider()
+Groupboxes.Automation:AddToggle("AutoInteract", {
+    Text = "Auto Interact",
+    Default = false
+}):AddKeyPicker("AutoInteractKey", {
+    Default = "R",
+    SyncToggleState = false,
+    NoUI = false,
+    Mode = "Toggle",
+    Text = "Auto Interact"
+})
 Groupboxes.Movement:AddSlider("SpeedBoost", {
     Text = "Speed Boost",
     Default = 0,
@@ -572,9 +971,38 @@ Groupboxes.Movement:AddToggle("nclip", {
     NoUI = false
 })
 
+Groupboxes.Movement:AddToggle("Fly", {
+    Text = "Fly",
+    Default = false
+}):AddKeyPicker("FlyKey", {
+    Text = "Fly",
+    Default = "F",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    NoUI = false
+})
+
+Groupboxes.Movement:AddSlider("FlySpeed", {
+    Text = "Fly Speed",
+    Default = 16,
+    Max = 75,
+    Min = 16,
+    Rounding = 0,
+    Compact = true
+})
+
 Groupboxes.Movement:AddToggle("jump", {
     Text = "Jump",
     Default = false,
+})
+
+Groupboxes.Movement:AddSlider("JumpHeight", {
+    Text = "Jump Boost",
+    Default = 5,
+    Min = 0,
+    Max = 50,
+    Rounding = 0,
+    Compact = true
 })
 
 Groupboxes.Miscellaneous = Tabs.Main:AddLeftGroupbox("Miscellaneous")
@@ -605,9 +1033,12 @@ local lobbyButton = Groupboxes.Miscellaneous:AddButton({
 })
 
 Groupboxes.Notifying = Tabs.Main:AddRightGroupbox("Notifying")
-Groupboxes.Notifying:AddToggle("entitynotif", {
-    Text = "Entity Notifications",
-    Default = false,
+Groupboxes.Notifying:AddDropdown("EntityNotifier", {
+    AllowNull = true,
+    Values = {"Rush", "Ambush", "Eyes", "Jeff The Killer", "A-60", "A-120", "Blitz", "Lookman", "Halt", "Gloombat Swarm"},
+    Default = {},
+    Multi = true,
+    Text = "Entity Notifier"
 })
 Groupboxes.Notifying:AddToggle("NotificationSound", {
     Text = "Notification Sound",
@@ -653,7 +1084,6 @@ Groupboxes.Removal = Tabs.Cheats:AddLeftGroupbox("Removal")
 Groupboxes.Removal:AddToggle("RemoveScreech", {
     Text = "No Screech",
     Default = false,
-    Visible = not IsFloor.Retro or not IsFloor.Backdoor or not IsFloor.Rooms
 })
 Groupboxes.Removal:AddToggle("DisableCameraShake", {
     Text = "No Camera Shake",
@@ -663,6 +1093,7 @@ Groupboxes.Removal:AddToggle("DisableCameraShake", {
 Groupboxes.Removal:AddToggle("NoTimothyJumpscare", {
     Text = "No Timothy Jumpscare",
     Default = false,
+    Visible = IsFloor.Mines or IsFloor.Hotel or IsFloor.HardMode
 })
 Groupboxes.Removal:AddToggle("A90Disabled", {
     Text = "No A90",
@@ -681,7 +1112,7 @@ Groupboxes.Removal:AddDivider()
 Groupboxes.Removal:AddToggle("NoSeekFE", {
     Text = "FE No Seek Trigger",
     Default = false,
-    Visible = not IsFloor.Backdoor or not IsFloor.Retro
+    Visible = IsFloor.Hotel or IsFloor.HardMode or IsFloor.Mines
 })
 
 Groupboxes.Removal:AddDivider();
@@ -766,11 +1197,12 @@ Groupboxes.SelfCheats = Tabs.Cheats:AddRightGroupbox("Self")
 Groupboxes.SelfCheats:AddToggle("RemoveSnareHitbox", {
     Text = "Anti-Snare",
     Default = false,
-    Visible = IsFloor.Hotel or IsFloor.HardMode
+    Visible = IsFloor.Mines or IsFloor.Hotel or IsFloor.HardMode
 })
 Groupboxes.SelfCheats:AddToggle("NoDupeTouch", {
     Text = "Anti-Dupe",
     Default = false,
+    Visible = IsFloor.Mines or IsFloor.Hotel or IsFloor.HardMode
 })
 Groupboxes.SelfCheats:AddToggle("nobanana", {
     Text = "Anti-Bananas",
@@ -778,7 +1210,7 @@ Groupboxes.SelfCheats:AddToggle("nobanana", {
     Visible = IsFloor.HardMode
 })
 Groupboxes.SelfCheats:AddToggle("noeyes", {
-    Text = not IsFloor.Backdoor and "Anti-Eyes" or "Anti-Lookman",
+    Text = if IsFloor.Backdoor then "Anti-Lookman" else "Anti-Eyes",
     Default = false,
 })
 Groupboxes.SelfCheats:AddToggle("GiggleHitboxRemoval", {
@@ -794,21 +1226,25 @@ Groupboxes.SelfCheats:AddToggle("AntiGloomEgg", {
 Groupboxes.SelfCheats:AddToggle("AntiDread", {
     Text = "Anti-Dread",
     Default = false,
-    Visible = not IsFloor.Retro or not IsFloor.Backdoor or not IsFloor.Rooms
 })
 Groupboxes.SelfCheats:AddToggle("nohalt", {
     Text = "Anti-Halt",
     Default = false,
-    Visible = not IsFloor.Backdoor or not IsFloor.Retro
 })
 Groupboxes.SelfCheats:AddToggle("FigureHearing", {
     Text = "No Figure Hearing",
     Default = false,
-    Visible = not IsFloor.Backdoor or not IsFloor.Rooms or not IsFloor.Retro
+    Visible = IsFloor.Mines or IsFloor.HardMode or IsFloor.Hotel
 })
 Groupboxes.SelfCheats:AddToggle("noObstaclesToggle", {
     Text = "Anti-Obstacles",
-    Default = false
+    Default = false,
+    Visible = IsFloor.Hotel or IsFloor.HardMode
+})
+Groupboxes.SelfCheats:AddToggle("BridgeWalk", {
+    Text = "Anti Bridge Fall",
+    Default = false,
+    Visible = IsFloor.Mines
 })
 Groupboxes.SelfCheats:AddDivider()
 
@@ -833,7 +1269,7 @@ Groupboxes.SelfCheats:AddSlider("PromptReach", {
     Default = 1,
     Min = 1,
     Max = 2,
-    Rounding = 0,
+    Rounding = 1,
     Compact = true
 })
 
@@ -841,7 +1277,8 @@ Groupboxes.SelfCheats:AddDivider()
 
 Groupboxes.SelfCheats:AddToggle("InfUniversalKey", {
     Text = "Infinite Items",
-    Default = false
+    Default = false,
+    Visible = not IsFloor.HardMode
 })
 
 
@@ -1096,11 +1533,16 @@ Groupboxes.View = Tabs.Visuals:AddRightGroupbox("View")
 
 
 Groupboxes.View:AddToggle("ambienceToggle", {
-    Text = "Ambience",
+    Text = "Ambient",
     Default = false,
 }):AddColorPicker("ambiencecol", {
     Default = Color3.fromRGB(255, 255, 255),
     Transparency = 0,
+})
+
+Groupboxes.View:AddToggle("NoFog", {
+    Text = "No Fog",
+    Default = false
 })
 Groupboxes.View:AddSlider("fovSlider", {
     Text = "Field of View",
@@ -1140,7 +1582,7 @@ Groupboxes.View:AddSlider("XOffset", {
     Min = -5,
     Max = 5,
     Rounding = 1,
-    Compact = false
+    Compact = true
 })
 
 Groupboxes.View:AddSlider("YOffset", {
@@ -1149,7 +1591,7 @@ Groupboxes.View:AddSlider("YOffset", {
     Min = -5,
     Max = 5,
     Rounding = 1,
-    Compact = false
+    Compact = true
 })
 
 Groupboxes.View:AddSlider("ZOffset", {
@@ -1158,9 +1600,13 @@ Groupboxes.View:AddSlider("ZOffset", {
     Min = -5,
     Max = 5,
     Rounding = 1,
-    Compact = false
+    Compact = true
 })
 -- \ Logical Code \ --
+
+
+
+
 Toggles.sbypass:OnChanged(function(value)
     if value then
         SpeedBypass();
@@ -1185,15 +1631,27 @@ Toggles.noslide:OnChanged(function(value)
     end
 end)
 
+Options.JumpHeight:OnChanged(function(value)
+    if not Toggles.jump.Value or IsFloor.HardMode then
+        return;
+    end
+    PlayerVariables.Humanoid.JumpHeight = value
+end)
+
+Toggles.Fly:OnChanged(function(value)
+    if value then
+        Fly:Start()
+    else
+        if Fly.Enabled then
+            Fly:Stop()
+        end
+    end
+end)
+
 Toggles.autopl:OnChanged(function(value)
     if PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard") then
         local paper = PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard")
-        local Needed = paper.Name == "LibraryHintPaperHard" and 10 or 5
-        local code = getpadlockcode(paper)
-
-        if string.len(code) == Needed then
-            RemotesFolder.PL:FireServer(code)
-        end
+        local code = PadlockCode(paper, "FireServer")
     end
 end)
 
@@ -1201,9 +1659,7 @@ Toggles.plcode:OnChanged(function(value)
     if value then
         if PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard") then
             local paper = PlayerVariables.Character:FindFirstChild("LibraryHintPaper") or PlayerVariables.Character:FindFirstChild("LibraryHintPaperHard")
-            local code = getpadlockcode(paper)
-
-            Library:Notify("The code is " .. code ".")
+            local code = PadlockCode(paper, "ToNotify")
         end
     end
 end)
@@ -1211,7 +1667,7 @@ end)
 Toggles.plrleave:OnChanged(function(value)
     if value then
         Connections.PlayerLeaving = game.Players.PlayerRemoving:Connect(function(player)
-            Library:Notify(player.DisplayName .. " has left the game.")
+            Library:Notification(player.DisplayName .. " has left the game.")
         end)
 
         task.spawn(function()
@@ -1232,31 +1688,16 @@ Options.lightSlider:OnChanged(function(value)
     Disposal.Light.Brightness = value
 end)
 
-Toggles.hidingExiting:OnChanged(function(value)
-    if value then
-        Connections.MoveDirection = PlayerVariables.Humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
 
-            PlayerVariables.Character:SetAttribute("Hiding", false)
-        end)
-
-        task.spawn(function()
-            repeat
-                task.wait()
-            until not Toggles.hidingExiting.Value
-
-            Connections.MoveDirection:Disconnect()
-        end)
-    end
-end)
 
 Toggles.RemoveScreech:OnChanged(function(value)
-    local Name = value and "Really Fucking Annoying" or "Screech"
+    local Name = if value then "Real" else "Screech"
 
     screechModule.Name = Name
 end)
 
 Toggles.GiggleHitboxRemoval:OnChanged(function(value)
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetChildren()) do
+    for _, v in pairs(CurrentRoomModel:GetChildren()) do
         for i, giggle in pairs(v:GetChildren()) do
             if giggle.Name == "GiggleCeiling" then
                 local Hitbox = giggle:WaitForChild("Hitbox", 5)
@@ -1270,9 +1711,9 @@ Toggles.GiggleHitboxRemoval:OnChanged(function(value)
 end)
 
 Toggles.AntiGloomEgg:OnChanged(function(value)
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetChildren()) do
+    for _, v in pairs(CurrentRoomModel:GetChildren()) do
         if v.Name == "GloomPile" then
-            for index, egg in pairs(gloomPile:GetDescendants()) do
+            for index, egg in pairs(v:GetDescendants()) do
                 if egg.Name == "Egg" then
                     egg.CanTouch = not value
                 end
@@ -1289,42 +1730,43 @@ Toggles.NoTimothyJumpscare:OnChanged(function(value)
 end)
 
 Toggles.A90Disabled:OnChanged(function(value)
-    local Name = value and "DVHub" or "A90"
+    local Name = if value then "Cooked" else "A90"
 
     A90.Name = Name
 end)
 
 Toggles.NoCutscenes:OnChanged(function(value)
-    local Cutscenes = moduleScripts.MainGame:FindFirstChild("Cutscenes", true)
+    if moduleScripts.MainGame:FindFirstChild("Cutscenes", true) then
+        local Cutscenes = moduleScripts.MainGame:FindFirstChild("Cutscenes", true)
 
-    if Cutscenes then
         for _, v in pairs(Cutscenes:GetChildren()) do
             if not table.find(ToExclude, v.Name) then
-                local DefaultName = v.Name:gsub("_", "")
+                local name = v.Name:gsub("Script", "")
 
-                local NewName = value and "OutPlayeddd_" .. DefaultName or DefaultName
-
-                v.Name = NewName
+                v.Name = if value then name .. "Script" else name
             end
         end
     end
 end)
 
 Toggles.NoSeekFE:OnChanged(function(value)
-    if value then
-        if workspace.CurrentRooms:FindFirstChild(NextRoom) then
-            task.spawn(deleteTriggerEventCollision, workspace.CurrentRooms[NextRoom])
+    if workspace.CurrentRooms:FindFirstChild(tostring(gameData.LatestRoom.Value + 1)) then
+        local trigcollision = workspace.CurrentRooms[tostring(gameData.LatestRoom.Value + 1)]:FindFirstChild("TriggerEventCollision")
+        local collision = if trigcollision then trigcollision:FindFirstChild("Collision") else nil
+
+        if trigcollision and collision then
+            SetupDeleteSeek(collision)
         end
     end
 end)
 Toggles.NoGlitchFX:OnChanged(function(value)
-    local Name = value and "DVHub" or "Glitch"
+    local Name = if value then "_Script_Glitch" else "Glitch"
 
     Glitch.Name = Name
 end)
 
 Toggles.NoVoidJumpscare:OnChanged(function(value)
-    local Name = value and "Solosss" or "Void"
+    local Name = if value then "DivineHub" else "Void"
 
     Void.Name = Name
 end)
@@ -1356,7 +1798,7 @@ Options.BodyRotationDropdown:OnChanged(function(mode)
 end)
 
 Toggles.RemoveSnareHitbox:OnChanged(function(value)
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom].Assets:GetChildren()) do
+    for _, v in pairs(CurrentRoomModel.Assets:GetChildren()) do
         if v.Name == "Snare" then
             SetTouch(v, not value)
         end
@@ -1364,7 +1806,7 @@ Toggles.RemoveSnareHitbox:OnChanged(function(value)
 end)
 
 Toggles.NoDupeTouch:OnChanged(function(value)
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetChildren()) do
+    for _, v in pairs(CurrentRoomModel:GetChildren()) do
         if v.Name == "SideroomDupe" then
             local DoorFake = v:WaitForChild("DoorFake", 5)
 
@@ -1394,13 +1836,13 @@ Toggles.nobanana:OnChanged(function(value)
 end)
 
 Toggles.nohalt:OnChanged(function(value)
-    local Name = value and "GotYourAss" or "Shade"
+    local Name = if value then "Halt" else "Shade"
 
     Shade.Name = Name
 end)
 
 Toggles.noObstaclesToggle:OnChanged(function(value)
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom].Assets:GetChildren()) do
+    for _, v in pairs(CurrentRoomModel.Assets:GetChildren()) do
         for i, obstr in pairs(v:GetDescendants()) do
             if obstr.Name == "Seek_Arm" or obstr.Name == "ChandelierObstruction" then
                 SetTouch(obstr, not value)
@@ -1409,9 +1851,39 @@ Toggles.noObstaclesToggle:OnChanged(function(value)
     end
 end)
 
+Toggles.BridgeWalk:OnChanged(function(value)
+    if value then
+        for _, v in pairs(CurrentRoomModel.Parts:GetChildren()) do
+            if v.Name == "Bridge" then
+                for _, x: BasePart in pairs(v:GetChildren()) do
+                    if (x.Name == "PlayerBarrier" and x.Size == Vector3.new(15.125, 2.75, 5.375)) then
+                        local clone = x:Clone()
+                        clone.Name = "NoFall"
+                        clone.Size = Vector3.new(15.125, 2.75, 40)
+                        clone.Color = Color3.new(255, 255, 255)
+                        clone.Transparency = 0
+                    end
+                end
+            end
+        end
+    else
+        for _, v in pairs(workspace.CurrentRooms:GetDescendants()) do
+            if v.Name == "Bridge" then
+                for _, x: BasePart in pairs(v:GetChildren()) do
+                    if x.Name == "NoFall" then
+                        x:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+
 Options.PromptReach:OnChanged(function(value)
     for _, v in pairs(workspace.CurrentRooms:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
+            if v.GamepadKeyCode ~= Enum.KeyCode.E then return; end
             if not v:GetAttribute("OGDistance") then v:SetAttribute("OGDistance", v.MaxActivationDistance) end
             v.MaxActivationDistance = v:GetAttribute("OGDistance") * value
         end
@@ -1421,6 +1893,7 @@ end)
 Toggles.PromptClip:OnChanged(function(value)
     for _, v in pairs(workspace.CurrentRooms:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
+            if v.GamepadKeyCode ~= Enum.KeyCode.E then return; end
             if not v:GetAttribute("RequiresSight") then v:SetAttribute("RequiresSight", v.RequiresLineOfSight) end
             v.RequiresLineOfSight = not value
         end
@@ -1449,68 +1922,28 @@ end)
 Toggles.EntityESP:OnChanged(function(value)
     if value then
         for _, v in pairs(workspace:GetChildren()) do
-            for i, element in pairs(IsEntity.Names) do
-                if v.Name == element then
-                    ESPFunctions.ESP({
-                        Text = ShortName(v),
-                        Object = v,
-                        Color = Options.EntityESPColor.Value,
-                        Type = "Entity",
-                        IsEntity = v.Name ~= "JeffTheKiller"
-                    })
-                end
-            end
+            task.spawn(ESPFunctions.EntityESP, v)
         end
 
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
-            for i, element in pairs(IsEntity.Names) do
-                if v.Name == element then
-                    ESPFunctions.ESP({
-                        Text = ShortName(v),
-                        Object = v,
-                        Color = Options.EntityESPColor.Value,
-                        Type = "SideEntity"
-                    })
-                end
-            end
+        for _, v in pairs(CurrentRoomModel:GetChildren()) do
+            task.spawn(ESPFunctions.SideEntityESP, v)
+        end
+    else
+        for _, v in pairs(ESPTable.Entity) do
+            v.Destroy()
+        end
+
+        for _, v in pairs(ESPTable.SideEntity) do
+            v.Destroy()
         end
     end
 end)
 
 Toggles.DoorESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetChildren()) do
-            if v.Name == "Door" then
-                local Door = v:WaitForChild("Door")
-                local Locked = v.Parent:GetAttribute("RequiresKey")
-                local Opened = v:GetAttribute("Opened")
-                local StinkerText = v.Sign.Stinker.Text
-                local State = if Locked and not Opened then "\n[LOCKED]" elseif Opened then "\n[OPENED]" else ""
-                local prettified = string.format("(%s)", GetRoomName(workspace.CurrentRooms[NextRoom]))
-                local str = string.format("Door %s %s %s", StinkerText, prettified, State)
+        task.spawn(ESPFunctions.DoorESP, CurrentRoomModel)
 
-                local DoorESP = ESPFunctions.ESP({
-                    Text = str,
-                    Object = Door,
-                    Color = Options.DoorESPColor.Value,
-                    Type = "Door",
-                    
-                    OnDestroy = function()
-                        if Connections["Door " .. v.Sign.Stinker.Text] then
-                            Connections["Door " .. v.Sign.Stinker.Text]:Disconnect()
-                        end
-                    end
-                })
-
-                Connections["Door " .. v.Sign.Stinker.Text] = v:GetAttributeChangedSignal("Opened"):Connect(function()
-                    if DoorESP then
-                        DoorESP.SetText("Door " .. StinkerText .. "\n[OPENED]")
-                    end
-
-                    Connections["Door " .. v.Sign.Stinker.Text]:Disconnect()
-                end)
-            end
-        end
+        task.spawn(ESPFunctions.DoorESP, NextRoomModel)
     else
         for _, v in pairs(ESPTable.Door) do
             v.Destroy()
@@ -1520,51 +1953,9 @@ end)
 
 Toggles.ObjectiveESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
-            if Objectives[v.Name] and v.Name ~= "WaterPump" then
-                ESPFunctions.ESP({
-                    Text = Objectives[v.Name].ESPName,
-                    Object = v,
-                    Color = Options.ObjectiveESPColor.Value,
-                    Type = "Objective"
-                })
-
-                if v.Name == "WaterPump" then
-                    local Wheel = v:WaitForChild("Wheel", 5)
-                    local On = v:FindFirstChild("OnFrame", true)
-
-
-                    if Wheel and (On and On.Visible) then
-                        local Random = RandomString()
-
-
-                        local ESPSave = ESPFunctions.ESP({
-                            Text = Objectives[v.Name].ESPName,
-                            Object = Wheel,
-                            Color = Options.ObjectiveESPColor.Value,
-                            Type = "Objective",
-
-                            OnDestroy = function()
-                                if Connections[Random] then
-                                    Connections[Random]:Disconnect()
-                                end
-                            end
-                        })
-
-                        Connections[Random] = On:GetPropertyChangedSignal("Visible"):Connect(function()
-                            if ESPSave then
-                                ESPSave.Destroy()
-                            end
-                        end)
-                    end
-                end
-            end
+        for _, v in pairs(CurrentRoomModel:GetDescendants()) do
+            task.spawn(ESPFunctions.ObjectiveESP, v)
         end
-        task.spawn(function()
-            repeat
-                task.wait()
-            until not Toggles.ObjectiveESP.Value
-        end)
     else
         for _, esp in pairs(ESPTable.Objective) do
             esp.Destroy()
@@ -1574,27 +1965,19 @@ end)
 
 Toggles.ItemESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom].Assets:GetDescendants()) do
-            if isItem(v) then
-                ESPFunctions.ESP({
-                    Text = ShortName(v):gsub("SkeletonKey", "Skeleton Key"),
-                    Object = v,
-                    Color = Options.ItemESPColor.Value,
-                    Type = "Item"
-                })
-            end
+        for _, v in pairs(CurrentRoomModel:GetDescendants()) do
+            task.spawn(ESPFunctions.ItemESP, v)
         end
 
         for _, v in pairs(workspace.Drops:GetChildren()) do
-            ESPFunctions.ESP({
-                Text = ShortName(v):gsub("(%1)(%u), %1, %2"),
-                Object = v,
-                Color = Options.ItemESPColor.Value,
-                Type = "Item"
-            })
+            task.spawn(ESPFunctions.ItemESP, v, true)
         end
     else
         for _, v in pairs(ESPTable.Item) do
+            v.Destroy()
+        end
+
+        for _, v in pairs(ESPTable.DroppedItem) do
             v.Destroy()
         end
     end
@@ -1602,15 +1985,8 @@ end)
 
 Toggles.GoldESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom].Assets:GetDescendants()) do
-            if v.Name == "GoldPile" then
-                ESPFunctions.ESP({
-                    Text = "Gold " .. "[" .. v:GetAttribute("GoldValue") .. "]",
-                    Object = v,
-                    Color = Options.GoldESPColor.Value,
-                    Type = "Gold"
-                })
-            end
+        for _, v in pairs(CurrentRoomModel.Assets:GetDescendants()) do
+            task.spawn(ESPFunctions.GoldESP, v)
         end
     else
         for _, v in pairs(ESPTable.Gold) do
@@ -1621,21 +1997,8 @@ end)
 
 Toggles.ChestESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
-            if v.Name == "Chest" or v.Name == "Toolshed_Small" or v:GetAttribute("Storage") == "ChestBox" then
-                local Final = v.Name:gsub("_Small", ""):gsub("_Vine", ""):gsub("Locked", ""):gsub("Box", "")
-
-                if v:GetAttribute("Locked") then
-                    Final = Final .. "\n[LOCKED]"
-                end
-
-                ESPFunctions.ESP({
-                    Text = Final,
-                    Object = v,
-                    Color = Options.ChestESPColor.Value,
-                    Type = "Chest"
-                })
-            end
+        for _, v in pairs(CurrentRoomModel:GetDescendants()) do
+            task.spawn(ESPFunctions.ChestESP, v)
         end
     else
         for _, v in pairs(ESPTable.Chest) do
@@ -1646,16 +2009,8 @@ end)
 
 Toggles.HidingSpotsESP:OnChanged(function(value)
     if value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom].Assets:GetChildren()) do
-            if v:GetAttribute("LoadModule") == "Wardrobe" or v:GetAttribute("LoadModule") == "Bed" or v.Name == "Rooms_Locker" or v.Name == "Retro_Wardrobe" then
-                local isBed = v:GetAttribute("LoadModule") == "Bed"
-                ESPFunctions.ESP({
-                    Text = if isBed then "Bed" else FloorHidingSpot[Floor],
-                    Object = v,
-                    Color = Options.HidingSpotESPColor.Value,
-                    Type = "HidingSpot"
-                })
-            end
+        for _, v in pairs(CurrentRoomModel.Assets:GetChildren()) do
+            task.spawn(ESPFunctions.HidingSpotESP, v)
         end
     else
         for _, v in pairs(ESPTable.HidingSpot) do
@@ -1667,16 +2022,7 @@ end)
 Toggles.PlayerESP:OnChanged(function(value)
     if value then
         for _, player in pairs(game.Players:GetPlayers()) do
-            if player ~= PlayerVariables.Player then
-                local playerCharacter = player.Character or player.CharacterAdded:Wait()
-
-                ESPFunctions.ESP({
-                    Text = player.DisplayName,
-                    Object = playerCharacter,
-                    Color = Options.PlayerESPColor.Value,
-                    Type = "Player"
-                })
-            end
+            task.spawn(ESPFunctions.PlayerESP, player)
         end
     else
         for _, v in pairs(ESPTable.Player) do
@@ -1690,7 +2036,11 @@ Options.EntityESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
+
+            Tracer = {
+                Color = value
+            }
         })
     end
 end)
@@ -1700,7 +2050,7 @@ Options.DoorESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1710,7 +2060,7 @@ Options.ObjectiveESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1720,7 +2070,7 @@ Options.ItemESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1730,7 +2080,7 @@ Options.GoldESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1740,7 +2090,7 @@ Options.ChestESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1750,7 +2100,7 @@ Options.PlayerESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1760,7 +2110,7 @@ Options.HidingSpotESPColor:OnChanged(function(value)
         v.Update({
             FillColor = value,
             OutlineColor = value,
-            TextColor = value
+            TextColor = value,
         })
     end
 end)
@@ -1801,12 +2151,14 @@ end)
 Toggles.TranslucentCloset:OnChanged(function(value)
     if value then
         if PlayerVariables.Character:GetAttribute("Hiding") then
-            for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
+            for _, v in pairs(CurrentRoomModel:GetDescendants()) do
                 if v.Name == "HiddenPlayer" then
                     if v.Value == PlayerVariables.Player or v.Value == PlayerVariables.Character then
                         for _, x in pairs(v.Parent:GetDescendants()) do
-                            if x:IsA("BasePart") and x.Name ~= "Collision" and x.Name ~= "PlayerCollision" and x.Name ~= "CollisionWedge" then
-                                Parts[x] = x
+                            if x:IsA("BasePart") then
+                                if x.Transparency ~= 1 then
+                                    table.insert(Parts, x)
+                                end
                             end
                         end
                     end
@@ -1949,7 +2301,22 @@ Options.ZOffset:OnChanged(function(value)
     end
 end)
 
+Connections[tonumber(CurrentRoom)] = CurrentRoomModel.DescendantAdded:Connect(function(v)
 
+    task.spawn(ESPFunctions.ItemESP, v)
+
+    task.spawn(ESPFunctions.GoldESP, v)
+
+    task.spawn(ESPFunctions.ObjectiveESP, v)
+
+    if v:IsA("ProximityPrompt") then
+        if not v:GetAttribute("RequiresSight") then v:SetAttribute("RequiresSight", v.RequiresLineOfSight) end
+        v.RequiresLineOfSight = not Toggles.PromptClip.Value
+        if not v:GetAttribute("OGDistance") then v:SetAttribute("OGDistance", v.MaxActivationDistance) end
+        v.MaxActivationDistance = v:GetAttribute("OGDistance") * Options.PromptReach.Value
+        table.insert(GamePrompts, v)
+    end
+end)
 
 
 -- \ Main connections \ --
@@ -1962,14 +2329,24 @@ Connections.MainRenderStepped = RunService.RenderStepped:Connect(function()
     if Toggles.ambienceToggle.Value then
         game.Lighting.Ambient = Options.ambiencecol.Value
     else
-        game.Lighting.Ambient = workspace.CurrentRooms[CurrentRoom]:GetAttribute("Ambient")
+        game.Lighting.Ambient = CurrentRoomModel:GetAttribute("Ambient")
     end
 
-    StoredValues.Distance = (workspace.CurrentRooms[CurrentRoom]:FindFirstChild("Door"):FindFirstChild("Door"):GetPivot().Position - PlayerVariables.Character:GetPivot().Position).Magnitude
+    if Toggles.NoFog.Value then
+        game.Lighting.FogStart = 9e9
+        game.Lighting.FogEnd = 9e9
+    else
+        game.Lighting.FogStart = 150
+        game.Lighting.FogEnd = 350
+    end
+
+    StoredValues.Distance = (CurrentRoomModel:FindFirstChild("Door"):FindFirstChild("Door"):GetPivot().Position - PlayerVariables.Character:GetPivot().Position).Magnitude
 
     if StoredValues.Distance <= Options.doorReach.Value then
-        workspace.CurrentRooms[CurrentRoom]:WaitForChild("Door"):WaitForChild("ClientOpen"):FireServer()
+        CurrentRoomModel:WaitForChild("Door"):WaitForChild("ClientOpen"):FireServer()
     end
+
+
 
     if Toggles.SpamOtherTools.Value and Options.SpamOtherToolsKeybind:GetState() then
         for _, player in pairs(game.Players:GetPlayers()) do
@@ -1987,6 +2364,7 @@ Connections.MainRenderStepped = RunService.RenderStepped:Connect(function()
 
     if Toggles.FigureHearing.Value then
         RemotesFolder.Crouch:FireServer(true)
+        PlayerVariables.Character:SetAttribute("Crouching", true)
     end
 
     if Toggles.noeyes.Value and (workspace:FindFirstChild("Eyes") or workspace:FindFirstChild("BackdoorLookman")) then
@@ -2007,6 +2385,16 @@ Connections.MainRenderStepped = RunService.RenderStepped:Connect(function()
         require(moduleScripts.MainGame).fovtarget = Options.fovSlider.Value
     end
 
+    if Toggles.AutoBreakerBox.Value then
+        if RemotesFolder:FindFirstChild("EBF") then
+            RemotesFolder.EBF:FireServer()
+        end
+    end
+
+    if CurrentRoomModel == nil then
+        CurrentRoom = tostring(gameData.LatestRoom.Value)
+    end
+
     for _, v in pairs(PlayerVariables.Character:GetChildren()) do
         if v:IsA("BasePart") then
             v.CanCollide = not Toggles.nclip.Value
@@ -2021,10 +2409,21 @@ Connections.MainRenderStepped = RunService.RenderStepped:Connect(function()
 
     if PlayerVariables.CollisionClone and PlayerVariables.Collision then
         PlayerVariables.CollisionClone.CollisionGroup = PlayerVariables.Collision.CollisionGroup;
+        PlayerVariables.CollisionClone.Position = PlayerVariables.Collision.Position
     end
+
     if Library.Unloaded then
         Connections.MainRenderStepped:Disconnect()
     end
+
+    if Toggles.AutoInteract.Value and Options.AutoInteractKey:GetState() then
+        for _, v in pairs(GamePrompts) do
+            if AvailablePrompt(v) then
+                fireproximityprompt(v, 1, true)
+            end
+        end
+    end
+
 end)
 
 
@@ -2033,27 +2432,10 @@ Connections.EntityHandler = workspace.ChildAdded:Connect(function(child: Model)
         return;
     end
 
+    task.spawn(ESPFunctions.EntityESP, child)
 
-    if Toggles.EntityESP.Value then
-        for i, element in pairs(IsEntity.Names) do
-            if element == child.Name and child:GetPivot().Position.Y > -10000 then
-                ESPFunctions.ESP({
-                    Text = ShortName(child),
-                    Object = child,
-                    Color = Options.EntityESPColor.Value,
-                    Type = "Entity",
-                    IsEntity = child.Name ~= "JeffTheKiller"
-                })
-
-
-            end
-        end
-    end
-
-    if Toggles.entitynotif.Value then
-        if NotifyTable[ShortName(child)] and child:GetPivot().Position.Y > -10000 then
-            Library:Notify(NotifyTable[ShortName(child)].Notification)
-        end
+    if NotifyTable[ShortName(child)] and child:GetPivot().Position.Y > -10000 and Options.EntityNotifier.Value[ShortName(child)] then
+        Library:Notification(NotifyTable[ShortName(child)].Notification)
     end
 
     if child.Name == "BananaPeel" then
@@ -2079,378 +2461,230 @@ end)
 Connections.PromptBegan = PxPromptService.PromptButtonHoldBegan:Connect(function(prompt, playerWhoTriggered)
     if Toggles.noewait.Value then
         if playerWhoTriggered == PlayerVariables.Player then
-            local OriginalDuration = prompt.HoldDuration
-
-            prompt.HoldDuration = 0
-            fireproximityprompt(prompt);
-
-            prompt.HoldDuration = OriginalDuration
+            fireproximityprompt(prompt, 1, true)
         end
     end
 end)
 
-Connections.Items = PlayerVariables.Character.ChildAdded:Connect(function(child: Tool)
-    if Toggles.plcode.Value then
-        if child.Name == "LibraryHintPaper" or child.Name == "LibraryHintPaperHard" then
-            local code = getpadlockcode(child)
+for _, plr in pairs(game.Players:GetPlayers()) do
+    Connections[string.format("Items: %s", plr.DisplayName)] = plr.Character.ChildAdded:Connect(function(tool: Tool)
+        if tool.Name:find("LibraryHintPaper") then
 
-            notification("The code is " .. code ".", Toggles.NotificationSound.Value)
-        end
-    end
+            if Toggles.plcode.Value then
+                PadlockCode(tool, "ToNotify", plr)
+            end
 
-    if Toggles.autopl.Value then
-        if child.Name == "LibraryHintPaper" or child.Name == "LibraryHintPaperHard" then
-            local Needed = child.Name == "LibraryHintPaperHard" and 10 or 5
-            local code = getpadlockcode(child)
-            local Amount = string.len(code)
-
-            if Needed - Amount == 0 then
-                RemotesFolder.PL:FireServer(code)
+            if Toggles.autopl.Value then
+                PadlockCode(tool, "FireServer", plr)
             end
         end
-    end
-    
-    if Toggles.ViewmodelOffset.Value then
-        for _, v in pairs(PlayerVariables.Player.Backpack:GetChildren()) do
-            if v:IsA("Tool") then
-                if not v:GetAttribute("OGOffset") then
-                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+
+        if tool.Parent == PlayerVariables.Character then
+            if Toggles.ViewmodelOffset.Value then
+                if tool:IsA("Tool") then
+                    if not tool:GetAttribute("OGOffset") then
+                        tool:SetAttribute("OGOffset", tool:GetAttribute("ToolOffset"))
+                    end
+        
+                    tool:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
                 end
+            end
+        end
+    end)
 
-                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
+    Connections[string.format("BackpackItems: %s", plr.DisplayName)] = plr.Backpack.ChildAdded:Connect(function(tool: Tool)
+        if tool.Name:find("LibraryHintPaper") then
+            
+            if Toggles.plcode.Value then
+                PadlockCode(tool, "ToNotify", plr)
+            end
+
+            if Toggles.autopl.Value then
+                PadlockCode(tool, "FireServer", plr)
             end
         end
 
-        for _, v in pairs(PlayerVariables.Character:GetChildren()) do
-            if v:IsA("Tool") then
-                if not v:GetAttribute("OGOffset") then
-                    v:SetAttribute("OGOffset", v:GetAttribute("ToolOffset"))
+        if tool.Parent == PlayerVariables.Player.Backpack then
+            if Toggles.ViewmodelOffset.Value then
+                if tool:IsA("Tool") then
+                    if not tool:GetAttribute("OGOffset") then
+                        tool:SetAttribute("OGOffset", tool:GetAttribute("ToolOffset"))
+                    end
+        
+                    tool:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
                 end
-
-                v:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
             end
         end
+    end)
+end
+
+Connections.MoveDirection = PlayerVariables.Humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+    if PlayerVariables.Character:GetAttribute("Hiding") and PlayerVariables.Humanoid.MoveDirection.Magnitude > 0 then
+        RemotesFolder.CamLock:FireServer()
     end
 end)
-
-Connections.Backpack = PlayerVariables.Player.Backpack.ChildAdded:Connect(function(child)
-    if Toggles.ViewmodelOffset.Value then
-        if child:IsA("Tool") then
-            if not child:GetAttribute("OGOffset") then
-                child:SetAttribute("OGOffset", child:GetAttribute("ToolOffset"))
-            end
-
-            child:SetAttribute("ToolOffset", Vector3.new(Options.XOffset.Value, Options.YOffset.Value, Options.ZOffset.Value))
-        end
-    end
-end)
-
 
 Connections.RoomHandler = workspace.CurrentRooms.ChildAdded:Connect(function(child: Model)
-    child:WaitForChild("Assets")
+    if child:GetAttribute("RawName"):find("Halt") then
+        Library:Notification("Halt will be in the next room.")
+    end
+    if child:GetAttribute("RawName"):find("SeekIntro") or child:GetAttribute("RawName"):find("SeekStart") then
+        task.spawn(function()
+            repeat
+                task.wait()
+            until child:FindFirstChild("TriggerEventCollision")
 
-    if Toggles.entitynotif.Value then
-        if child:GetAttribute("RawName") == "HaltHallway" then
-            Library:Notify("Halt is in the next room.")
-        end
+            local collision = child:FindFirstChild("TriggerEventCollision"):FindFirstChild("Collision")
+
+            if collision and collision:IsA("BasePart") then
+                SetupDeleteSeek(collision)
+            end
+        end)
     end
 end)
 
 Connections.Dropped = workspace.Drops.ChildAdded:Connect(function(child: Instance)
-    if Toggles.ItemESP.Value then
-        ESPFunctions.ESP({
-            Text = ShortName(child),
-            Object = child,
-            Color = Options.ItemESPColor.Value,
-            Type = "Item"
-        })
-    end
+    task.spawn(ESPFunctions.ItemESP, child, true)
 end)
 
-Connections.RoomChanged = PlayerVariables.Player:GetAttributeChangedSignal("CurrentRoom"):Connect(function(RoomValue)
+Connections.RoomChanged = PlayerVariables.Player:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
+    
+        CurrentRoom = if workspace.CurrentRooms:FindFirstChild(tostring(PlayerVariables.Player:GetAttribute("CurrentRoom"))) then tostring(PlayerVariables.Player:GetAttribute("CurrentRoom")) else tostring(gameData.LatestRoom.Value)
+        NextRoom = tostring(PlayerVariables.Player:GetAttribute("CurrentRoom") + 1)
+        CurrentRoomModel = workspace.CurrentRooms:FindFirstChild(CurrentRoom)
+        NextRoomModel = workspace.CurrentRooms:FindFirstChild(NextRoom)
 
-    if workspace.CurrentRooms[tostring(PlayerVariables.Player:GetAttribute("CurrentRoom"))] == nil then
-        CurrentRoom = gameData.LatestRoom.Value
-    end
+        
 
-    CurrentRoom = tostring(PlayerVariables.Player:GetAttribute("CurrentRoom"))
-    NextRoom = tostring(PlayerVariables.Player:GetAttribute("CurrentRoom") + 1)
+        if PlayerVariables.Player:GetAttribute("CurrentRoom") ~= 100 then repeat task.wait() until workspace.CurrentRooms:FindFirstChild(NextRoom) end
 
-    for i, v in pairs(Connections) do
-        if type(i) == "number" then
-            if i ~= tonumber(CurrentRoom) then
-                v:Disconnect()
+        if Toggles.DoorESP.Value then
+            for _, v in pairs(ESPTable.Door) do
+                v.Destroy()
             end
-        end
-    end
 
-    if Connections[tonumber(CurrentRoom)] then
-        Connections[tonumber(CurrentRoom)]:Disconnect()
-    end
+            task.spawn(ESPFunctions.DoorESP, CurrentRoomModel)
 
-    if Toggles.EntityESP.Value then
-        for _, v in pairs(ESPTable.SideEntity) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.ItemESP.Value then
-        for _, v in pairs(ESPTable.Item) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.DoorESP.Value then
-        for _, v in pairs(ESPTable.Door) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.ObjectiveESP.Value then
-        for _, v in pairs(ESPTable.Objective) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.GoldESP.Value then
-        for _, v in pairs(ESPTable.Gold) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.ChestESP.Value then
-        for _, v in pairs(ESPTable.Chest) do
-            v.Destroy()
-        end
-    end
-
-    if Toggles.HidingSpotsESP.Value then
-        for _, v in pairs(ESPTable.HidingSpot) do
-            v.Destroy()
-        end
-    end
-
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
-        if Objectives[v.Name] and Toggles.ObjectiveESP.Value and v.Name ~= "WaterPump" then
-            ESPFunctions.ESP({
-                Text = ShortName(v),
-                Object = v,
-                Color = Options.ObjectiveESPColor.Value,
-                Type = "Objective"
-            })
+            task.spawn(ESPFunctions.DoorESP, NextRoomModel)
         end
 
-        if v.Name == "WaterPump" and Toggles.ObjectiveESP.Value then
-            local Wheel = v:WaitForChild("Wheel", 5)
-            local OnFrame = v:FindFirstChild("OnFrame", true)
-
-            if Wheel and (OnFrame and OnFrame.Visible) then
-                local Random = RandomString()
-
-                local ESP = ESPFunctions.ESP({
-                    Text = "Valve",
-                    Object = Wheel,
-                    Color = Options.ObjectiveESPColor.Value,
-                    Type = "Objective",
-
-                    OnDestroy = function()
-                        if Connections[Random] then
-                            Connections[Random]:Disconnect()
-                        end
-                    end
-                })
-
-
-                Connections[Random] = OnFrame:GetPropertyChangedSignal("Visible"):Connect(function()
-                    if Wheel and v and OnFrame and ESP then
-                        ESP.Destroy()
-                    end
-                end)
-            end
-        end
-
-        if Toggles.EntityESP.Value then
-            for i, element in pairs(IsEntity.Names) do
-                if v.Name == element then
-                    ESPFunctions.ESP({
-                        Text = ShortName(v),
-                        Object = v,
-                        Color = Options.EntityESPColor.Value,
-                        Type = "SideEntity"
-                    })
+        for i, v in pairs(Connections) do
+            if type(i) == "number" then
+                if i ~= tonumber(CurrentRoom) then
+                    v:Disconnect()
                 end
             end
         end
+    
+        if Connections[tonumber(CurrentRoom)] then
+            Connections[tonumber(CurrentRoom)]:Disconnect()
+        end
 
+        
+        if Toggles.ObjectiveESP.Value then
+            for _, v in pairs(ESPTable.Objective) do
+                v.Destroy()
+            end
+        end
 
         if Toggles.ItemESP.Value then
-            if isItem(v) then
-                ESPFunctions.ESP({
-                    Text = ShortName(v),
-                    Object = v,
-                    Color = Options.ItemESPColor.Value,
-                    Type = "Item"
-                })
-            end
-        end
-
-        if v:IsA("ProximityPrompt") then
-            if not v:GetAttribute("RequiresSight") then v:SetAttribute("RequiresSight", v.RequiresLineOfSight) end
-            v.RequiresLineOfSight = not Toggles.PromptClip.Value
-            if not v:GetAttribute("OGDistance") then v:SetAttribute("OGDistance", v.MaxActivationDistance) end
-            v.MaxActivationDistance = v:GetAttribute("OGDistance") * Options.PromptReach.Value
-        end
-
-        if Toggles.GoldESP.Value then
-            if v.Name == "GoldPile" then
-                ESPFunctions.ESP({
-                    Text = "Gold " .. "[" .. v:GetAttribute("GoldValue") .. "]",
-                    Object = v,
-                    Color = Options.GoldESPColor.Value,
-                    Type = "Gold"
-                })
-            end
-        end
-
-        if Toggles.ChestESP.Value then
-            if v:GetAttribute("Storage") == "ChestBox" or v.Name == "Toolshed_Small" or string.find(v.Name, "Chest") then
-                local Locked = v:GetAttribute("Category") == "ChestLocked"
-                local str = v.Name:gsub("_Small", ""):gsub("_Vine", ""):gsub("Locked", ""):gsub("Box", "")
-                
-                if Locked then
-                    str = str .. "\n[LOCKED]"
-                end
-
-                ESPFunctions.ESP({
-                    Text = str,
-                    Object = v,
-                    Color = Options.ChestESPColor.Value,
-                    Type = "Chest"
-                })
+            for _, v in pairs(ESPTable.Item) do
+                v.Destroy()
             end
         end
 
         if Toggles.HidingSpotsESP.Value then
-            if v:GetAttribute("LoadModule") == "Wardrobe" or v:GetAttribute("LoadModule") == "Bed" or v.Name == "Rooms_Locker" or v.Name == "Retro_Wardrobe" then
-                local isBed = v:GetAttribute("LoadModule") == "Bed"
-                local str = isBed and "Bed" or FloorHidingSpot[Floor]
-
-                ESPFunctions.ESP({
-                    Text = str,
-                    Object = v,
-                    Color = Options.HidingSpotESPColor.Value,
-                    Type = "HidingSpot"
-                })
+            for _, v in pairs(ESPTable.HidingSpot) do
+                v.Destroy()
             end
         end
 
-        if v.Name == "GiggleCeiling" and v:FindFirstChild("Hitbox") then
-            v.Hitbox.CanTouch = not Toggles.GiggleHitboxRemoval.Value
+        if Toggles.GoldESP.Value then
+            for _, v in pairs(ESPTable.Gold) do
+                v.Destroy()
+            end
         end
 
-        if v.Name == "Egg" then
-            v.CanTouch = not Toggles.AntiGloomEgg.Value
+        if Toggles.EntityESP.Value then
+            for _, v in pairs(ESPTable.SideEntity) do
+                v.Destroy()
+            end
         end
 
-        if v.Name == "Snare" then
-            SetTouch(v, not Toggles.RemoveSnareHitbox.Value)
+        if Toggles.ChestESP.Value then
+            for _, v in pairs(ESPTable.Chest) do
+                v.Destroy()
+            end
         end
 
-        if v.Name == "Seek_Arm" or v.Name == "ChandelierObstruction" then
-            SetTouch(v, not Toggles.noObstaclesToggle.Value)
-        end
-
-        if v.Name == "DoorFake" then
-            for _, l in pairs(v:GetDescendants()) do
-                if l:IsA("BasePart") then
-                    l.CanTouch = not Toggles.NoDupeTouch.Value
+        for _, v: Instance in pairs(CurrentRoomModel:GetDescendants()) do
+            -- iterating through parts during floor 2 seek chases gets laggy
+            if IsFloor.Mines and CurrentRoomModel:GetAttribute("Chase") then
+                if v.Name == "Parts" or v:FindFirstAncestor("Parts") then
+                    continue
                 end
             end
 
-            for _, l in pairs(v:GetDescendants()) do
-                if l:IsA("ProximityPrompt") then
-                    l.Enabled = not Toggles.NoDupeTouch.Value
-                end
-            end
+            task.spawn(ESPFunctions.ItemESP, v)
+
+            task.spawn(ESPFunctions.ChestESP, v)
+
+            task.spawn(ESPFunctions.SideEntityESP, v)
+
+            task.spawn(ESPFunctions.GoldESP, v)
+
+            task.spawn(ESPFunctions.HidingSpotESP, v)
+
+            task.spawn(ESPFunctions.ObjectiveESP, v)
         end
-    end
     
-    if Toggles.NoSeekFE.Value and workspace.CurrentRooms:FindFirstChild(NextRoom) then
-        task.spawn(deleteTriggerEventCollision, workspace.CurrentRooms[NextRoom])
-    end
 
-
-    Connections[tonumber(CurrentRoom)] = workspace.CurrentRooms[CurrentRoom]:WaitForChild("Assets").DescendantAdded:Connect(function(v)
-        task.wait(.5)
-
-        if isItem(v) and Toggles.ItemESP.Value then
-            ESPFunctions.ESP({
-                Text = ShortName(v),
-                Object = v,
-                Color = Options.ItemESPColor.Value,
-                Type = "Item"
-            })
+        if Toggles.BridgeWalk.Value then
+            for _, v in pairs(CurrentRoomModel.Parts:GetChildren()) do
+                if v.Name == "Bridge" then
+                    for _, x: BasePart in pairs(v:GetChildren()) do
+                        if (x.Name == "PlayerBarrier" and  x.Size == Vector3.new(15.125, 2.75, 5.375))then
+                            local clone = x:Clone()
+                            clone.Name = "NoFall"
+                            clone.Size = Vector3.new(15.125, 2.75, 40)
+                            clone.Color = Color3.new(255, 255, 255)
+                            clone.Transparency = 0
+                        end
+                    end
+                end
+            end
         end
 
-        if v.Name == "GoldPile" and Toggles.GoldESP.Value then
-            ESPFunctions.ESP({
-                Text = "Gold " .. "[" .. v:GetAttribute("GoldValue") .. "]",
-                Object = v,
-                Color = Options.GoldESPColor.Value,
-                Type = "Gold"
-            })
-        end
+    Connections[tonumber(CurrentRoom)] = CurrentRoomModel.DescendantAdded:Connect(function(v)
 
+        
+        task.spawn(ESPFunctions.ItemESP, v)
+
+        task.spawn(ESPFunctions.GoldESP, v)
+
+        task.spawn(ESPFunctions.ObjectiveESP, v)
+
+    
         if v:IsA("ProximityPrompt") then
             if not v:GetAttribute("RequiresSight") then v:SetAttribute("RequiresSight", v.RequiresLineOfSight) end
             v.RequiresLineOfSight = not Toggles.PromptClip.Value
             if not v:GetAttribute("OGDistance") then v:SetAttribute("OGDistance", v.MaxActivationDistance) end
             v.MaxActivationDistance = v:GetAttribute("OGDistance") * Options.PromptReach.Value
+            table.insert(GamePrompts, v)
         end
     end)
-
-    for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetChildren()) do
-        if v.Name == "Door" then
-            local Door = v:FindFirstChild("Door")
-            local Locked = v.Parent:GetAttribute("RequiresKey")
-            local Opened = v:GetAttribute("Opened")
-            local State = if Opened then "\n[OPENED]" elseif Locked then "\n[LOCKED]" else "" 
-            local StinkerText = v.Sign.Stinker.Text
-            local prettified = string.format("(%s)", GetRoomName(workspace.CurrentRooms[NextRoom]))
-            local str = string.format("Door %s %s %s", StinkerText, prettified, State)
-
-            local DoorESP = ESPFunctions.ESP({
-                Text = str,
-                Object = Door,
-                Color = Options.DoorESPColor.Value,
-                Type = "Door",
-
-                OnDestroy = function()
-                    if Connections["Door " .. v.Sign.Stinker.Text] then
-                        Connections["Door " .. v.Sign.Stinker.Text]:Disconnect()
-                    end
-                end
-            })
-
-            Connections["Door " .. v.Sign.Stinker.Text] = v:GetAttributeChangedSignal("Opened"):Connect(function()
-                if DoorESP then
-                    DoorESP.SetText("Door " .. StinkerText .. "\n[OPENED]")
-                end
-
-                Connections["Door " .. v.Sign.Stinker.Text]:Disconnect()
-            end)
-        end
-    end
 end)
 
 Connections.Hidden = PlayerVariables.Character:GetAttributeChangedSignal("Hiding"):Connect(function(value)
     if Toggles.TranslucentCloset.Value then
-        for _, v in pairs(workspace.CurrentRooms[CurrentRoom]:GetDescendants()) do
+        for _, v in pairs(CurrentRoomModel:GetDescendants()) do
             if v.Name == "HiddenPlayer" then
                 if v.Value == PlayerVariables.Player or v.Value == PlayerVariables.Character then
                     for _, x in pairs(v.Parent:GetDescendants()) do
                         if x:IsA("BasePart") then
-                            Parts[x] = x
+                            if x.Transparency ~= 1 then
+                                table.insert(Parts, x)
+                            end
                         end
                     end
                 end
@@ -2498,7 +2732,7 @@ Connections.PromptTriggered = PxPromptService.PromptTriggered:Connect(function(v
 
                 workspace.Drops.ChildAdded:Once(function(v)
                     task.wait(.1)
-                    repalcedfirepp(v:WaitForChild("ModulePrompt"), false, false)
+                    fireproximityprompt(v:WaitForChild("ModulePrompt"), false, false)
                 end)
             end
         end
@@ -2514,12 +2748,16 @@ MenuGroup:AddToggle("showKeybinds", {
         Library.KeybindFrame.Visible = Value
     end
 })
-MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "Right Shift", NoUI = true, Text = "Menu Keybind" })
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu Keybind" })
+MenuGroup:AddToggle("KeepScript", {
+    Text = "Execute On Teleport",
+    Default = false
+})
 MenuGroup:AddToggle("CustomCursor", {
     Text = "Show Custom Cursor",
     Default = true,
     Callback = function(Value)
-        Window.ShowCustomCursor = Value
+        Library.ShowCustomCursor = Value
     end
 })
 
@@ -2566,3 +2804,9 @@ ThemeManager:ApplyToTab(Tabs.Configs)
 
 SaveManager:LoadAutoloadConfig()
 
+PlayerVariables.Player.OnTeleport:Connect(function()
+    if Toggles.KeepScript.Value and not getgenv().teleporting then
+        getgenv().teleporting = true
+        queue_on_teleport([[ loadstring(game:HttpGet("https://raw.githubusercontent.com/Lazarpriv/utilities/refs/heads/main/uh.lua"))() ]])
+    end
+end)
