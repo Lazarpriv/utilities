@@ -1,15 +1,15 @@
-
-    -- \\ DIVINE HUB V1 (or V2 idk first one was ass) \\ --
+print("Divine Hub V2: Executed.")
 
 -- \ To check if the script was already loaded \ -
 if getgenv().Loaded then
+    print("Divine Hub V2: Script was already ran once! Try clicking the Unload button in the Configs tab, if the UI isn't visible, run getgenv().Loaded = false")
     return;
 end
 
 getgenv().Loaded = true
 
 -- \ Loading Wait \ --
-repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild("LoadingUI", true).Enabled == false
 
 -- \ Library \ --
 local repo = "https://raw.githubusercontent.com/deividcomsono/LinoriaLib/refs/heads/main/"
@@ -19,10 +19,13 @@ local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.lua"))()
 
-
+getgenv().LinoriaLibrary = Library
+getgenv().LinoriaThemeManager = ThemeManager
+getgenv().LinoriaSaveManager = SaveManager
 
 getgenv().ForceUnload = function()
     getgenv().Loaded = false
+    Library:Unload()
 end
 
 -- \ Variables \ --
@@ -44,7 +47,7 @@ PlayerVariables.CollisionClone.Parent = PlayerVariables.Collision.Parent
 PlayerVariables.CollisionClone.Name = "CollisionFake"
 
 
-local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local ReplicatedStorage: ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local EntityModules: Folder = ReplicatedStorage.ClientModules.EntityModules
 local Glitch: ModuleScript = EntityModules.Glitch
 local Void: ModuleScript = EntityModules.Void
@@ -57,6 +60,8 @@ local Disposal = {}
 local StoredValues = {}
 local Parts = {}
 local Groupboxes = {}
+local Supported = {}
+local UNCPrintMessages = {}
 local ToExclude = {
     "FigureHotelChase",
     "Elevator1",
@@ -101,7 +106,7 @@ local Fly = {
 local BodyProperties = {"HeadColor3", "LeftLegColor3", "LeftArmColor3", "RightLegColor3", "RightArmColor3", "TorsoColor3"}
 local uis: UserInputService = cloneref(game:GetService("UserInputService"))
 local RemotesFolder: Folder = ReplicatedStorage:FindFirstChild("RemotesFolder") or ReplicatedStorage:FindFirstChild("EntityInfo");
-local PxPromptService = cloneref(game:GetService("ProximityPromptService"))
+local PxPromptService: ProximityPromptService = cloneref(game:GetService("ProximityPromptService"))
 local Entity: Folder = game.ReplicatedStorage.Entities
 local hooks = {}
 local Connections = {}
@@ -148,9 +153,7 @@ local ESPTable = {
 
 local ESPFunctions = {}
 local executorname = getexecutorname()
-local SupportTable = {
-     [executorname] = {Require = false, FirePP = executorname ~= "Solara"}
-}
+
 
 local IsEntity = {
     ["RushMoving"] = {"Entity"},
@@ -294,8 +297,123 @@ end
 function DistanceFromCharacter(point: Instance)
     return (PlayerVariables.Character:GetPivot().Position - point:GetPivot().Position).Magnitude
 end
+-- \ Testing support
+function TestFeature(name: string, toTest: () -> ())
+    local succ, err = false, nil
 
+    succ, err = pcall(toTest)
 
+    Supported[name] = succ
+    UNCPrintMessages[name] = string.format("%s [%s]%s", (if succ then "✅" else "⛔"), name, (if err then ": " .. tostring(err) else ""))
+end
+
+TestFeature("require", function()
+    require(PlayerVariables.Player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+end)
+
+local CanFirePP = TestFeature("fireproximityprompt", function()
+    local prox = Instance.new("ProximityPrompt", Instance.new("Part", workspace))
+    local trig = false
+
+    prox.Triggered:Once(function()
+        trig = true
+    end)
+    fireproximityprompt(prox)
+    task.wait(0.1)
+
+    prox.Parent:Destroy()
+
+    assert(trig, "Wasn't able to fire prompt")
+end)
+
+TestFeature("hookfunction", function()
+    local function test()
+        return true
+    end
+
+    local ref = hookfunction(test, function()
+        return false
+    end)
+
+    assert(test() == false, "Hooked function should return false")
+    assert(ref() == true, "Old function should return true")
+    assert(test ~= ref, "Original function should not be the same as the reference to the old one")
+end)
+
+TestFeature("firesignal", function()
+    local bindable = Instance.new("BindableEvent", workspace)
+    local trig = false
+
+    bindable.Event:Once(function(val)
+        trig = val
+    end)
+
+    firesignal(bindable.Event, true)
+    task.wait(0.1)
+    bindable:Destroy()
+
+    assert(trig, "Failed to fire signal")
+end)
+
+TestFeature("hookmetamethod", function()
+    local object = setmetatable({}, { __index = newcclosure(function() return false end), __metatable = "Locked!" })
+	local ref = hookmetamethod(object, "__index", function() return true end)
+	assert(object.test == true, "Failed to hook a metamethod and change the return value")
+	assert(ref() == false, "Did not return the original function")
+end)
+
+TestFeature("getnamecallmethod", function()
+	local method
+    local ref 
+
+    ref = hookmetamethod(game, "__namecall", function(...)
+		if not method then
+			method = getnamecallmethod()
+		end
+        return ref(...)
+	end)
+    game:GetService("HttpService")
+    task.wait(0.2)
+    assert(method == "GetService", "getnamecallmethod was not capable of returning the correct method.")
+end)
+
+for _, v in ipairs(UNCPrintMessages) do
+    print(v)
+end
+
+getgenv().SupportTable = Supported
+-- \ Fixing \ --
+if not CanFirePP then
+    getgenv().fireproximityprompt = function(prompt: ProximityPrompt, skip: boolean)
+        assert(typeof(prompt) == "Instance" and prompt:IsA("ProximityPrompt"), "Argument #1 of fireproximityprompt was not a prompt.")
+
+        local HoldDur = prompt.HoldDuration
+        local RequiresLineOfSight = prompt.RequiresLineOfSight
+
+        if skip then
+            prompt.HoldDuration = 0
+        end
+
+        prompt.RequiresLineOfSight = false
+
+        prompt:InputHoldBegin()
+        task.wait(prompt.HoldDuration + 0.05)
+        prompt:InputHoldEnd()
+
+        prompt.HoldDuration = HoldDur
+        prompt.RequiresLineOfSight = RequiresLineOfSight
+    end
+end
+
+if firetouchinterest == nil and firetouchtransmitter ~= nil then
+    getgenv().firetouchinterest = firetouchtransmitter
+end
+
+if not isnetworkowner then
+    getgenv().isnetworkowner = function(part: BasePart)
+        return part.ReceiveAge == 0
+    end
+end
 type ESPArg = {
     Type: string,
     Object: Instance,
@@ -400,7 +518,7 @@ function ESPFunctions.DoorESP(room: Model)
             local State = if Locked and not Opened then "[Locked]" elseif Opened then "[Opened]" else ""
             local Stinker = Door:WaitForChild("Sign"):FindFirstChild("SignText") or Door:WaitForChild("Sign"):FindFirstChild("Stinker")
             local RoomNum = Stinker.Text
-            local RoomName = GetRoomName(room) or ""
+            local RoomName = string.format("(%s)", GetRoomName(CurrentRoomModel)) or nil
             local String = string.format("Door %s %s %s", RoomNum, RoomName, State)
 
             local DoorESP = ESPFunctions.ESP({
@@ -563,37 +681,6 @@ function IsMultiplayer()
 end
 
 -- \ Checking support for the main features the script needs \ --
-
-local hasrequire = false
-
-local succ, err = pcall(function()
-    require(moduleScripts.MainGame)
-end)
-
-local hasrequire = if succ then true else false
-
-SupportTable[executorname].Require = hasrequire
-
-getgenv().fireproximityprompt = if SupportTable[executorname].FirePP then fireproximityprompt else function(ProximityPrompt, Amount, Skip)
-    assert(ProximityPrompt, "Argument #1 Missing or nil")
-    assert(typeof(ProximityPrompt) == "Instance" and ProximityPrompt:IsA("ProximityPrompt"), "Attempted to fire a Value that is not a ProximityPrompt")
-
-    local HoldDuration = ProximityPrompt.HoldDuration
-    local RequiresSight = ProximityPrompt.RequiresLineOfSight
-    if Skip then
-        ProximityPrompt.HoldDuration = 0
-    end
-
-    ProximityPrompt.RequiresLineOfSight = false
-
-    for i = 1, Amount or 1 do
-        ProximityPrompt:InputHoldBegin()
-        task.wait(ProximityPrompt.HoldDuration + 0.05)
-        ProximityPrompt:InputHoldEnd()
-    end
-    ProximityPrompt.HoldDuration = HoldDuration
-    ProximityPrompt.RequiresLineOfSight = RequiresSight
-end
 
 
 function MakeRandomString()
@@ -1090,7 +1177,7 @@ Groupboxes.Removal:AddToggle("RemoveScreech", {
 Groupboxes.Removal:AddToggle("DisableCameraShake", {
     Text = "No Camera Shake",
     Default = false,
-    Visible = SupportTable[executorname].Require
+    Visible = Supported["require"]
 })
 Groupboxes.Removal:AddToggle("NoTimothyJumpscare", {
     Text = "No Timothy Jumpscare",
@@ -2377,7 +2464,7 @@ Connections.MainRenderStepped = RunService.RenderStepped:Connect(function()
 
     workspace.CurrentCamera.FieldOfView = Options.fovSlider.Value
 
-    if SupportTable[executorname].Require then
+    if Supported["require"] then
         require(moduleScripts.MainGame).fovtarget = Options.fovSlider.Value
     end
 
@@ -2768,7 +2855,7 @@ MenuGroup:AddToggle("CustomCursor", {
 Library:OnUnload(function()
     getgenv().Loaded = false
 
-    for _, toggle in pairs(Toggles) do
+    for _, toggle in ipairs(Toggles) do
         toggle:SetValue(false)
     end
 
@@ -2780,10 +2867,13 @@ Library:OnUnload(function()
     PlayerVariables.Character:SetAttribute("SpeedBoost", 0)
     PlayerVariables.Character:SetAttribute("CanJump", false)
     workspace.CurrentCamera.FieldOfView = 70
-    require(moduleScripts.MainGame).fovtarget = 70
+
+    if Supported["require"] then
+        require(moduleScripts.MainGame).fovtarget = 70
+    end
 
     for _, type in pairs(ESPTable) do
-        for _, inst in pairs(v) do
+        for _, inst in pairs(type) do
             inst.Destroy()
         end
     end
