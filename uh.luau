@@ -397,7 +397,6 @@ TestFeature("getnamecallmethod", function()
 end, "Succesfully received correct namecall method (GetService).")
 
 TestFeature("firetouchinterest", function()
-    if not getexecutorname() == "Seliware" then
         
     local part = Instance.new("Part", workspace)
     local touched 
@@ -406,13 +405,12 @@ TestFeature("firetouchinterest", function()
         touched = true
     end)
 
-    firetouchinterest(PlayerVariables.HumanoidRootPart, part, 1)
+    firetouchinterest(part, PlayerVariables.HumanoidRootPart, 1)
     task.wait()
-    firetouchinterest(PlayerVariables.HumanoidRootPart, part, 0)
+    firetouchinterest(part, PlayerVariables.HumanoidRootPart, 0)
     task.wait()
 
     assert(touched, "Was not able to firetouchinterest.")
-    end
 end, "Succesfully simulated a .Touched event with firetouchinterest.")
 
 for name, result in pairs(Supported) do
@@ -2890,10 +2888,6 @@ MenuGroup:AddToggle("CustomCursor", {
 Library:OnUnload(function()
     getgenv().Loaded = false
 
-
-    for _, conn in pairs(Connections) do
-        conn:Disconnect()
-    end
 
     PlayerVariables.CollisionClone:Destroy()
 
