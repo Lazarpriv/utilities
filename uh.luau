@@ -147,7 +147,8 @@ local ESPTable = {
     Gold = {},
     Chest = {},
     HidingSpot = {},
-    Objective = {}
+    Objective = {},
+    GuidingLight = {}
 }
 
 local Functions = {}
@@ -221,6 +222,10 @@ Disposal.Light = Instance.new("SpotLight", PlayerVariables.Character.Head) do
     Disposal.Light.Enabled = false
     Disposal.Light.Name = "DVHub"
     Disposal.Light.Brightness = 0
+end
+
+Disposal.MinecartInst = Instance.new("Part", workspace) do
+    Disposal.MinecartInst.Anchored = true -- wip
 end
 -- \ Functions \ --
 function Functions.PadlockCode(Paper: Tool, Usage: string, Player: Player)
@@ -401,16 +406,17 @@ TestFeature("firetouchinterest", function()
     local part = Instance.new("Part", workspace)
     local touched 
 
-    part.Touched:Once(function()
+    part.Touched:Connect(function()
         touched = true
+        part:Destroy()
     end)
 
     firetouchinterest(part, PlayerVariables.HumanoidRootPart, 1)
     task.wait()
     firetouchinterest(part, PlayerVariables.HumanoidRootPart, 0)
-    task.wait()
+    task.wait(1)
 
-    assert(touched, "Was not able to firetouchinterest.")
+    assert(not part:IsDescendantOf(workspace), "Firetouchinterest didn't work (didn't activate the .Touched event properly).")
 end, "Succesfully simulated a .Touched event with firetouchinterest.")
 
 for name, result in pairs(Supported) do
@@ -448,9 +454,15 @@ end
 
 if not Supported["firetouchinterest"] then
     print("🛠️ Making a working firetouchinterest...")
-    getgenv().firetouchinterest = firetouchtransmitter or function(inst1: BasePart, inst2: BasePart, amount: number)
-        for i = 1, amount do
-            inst2.CFrame = inst1.CFrame
+    getgenv().firetouchinterest = firetouchtransmitter or function(inst1: BasePart, inst2: BasePart, shouldtouch: boolean)
+        if not inst1:GetAttribute("OGCFrame") then
+            inst1:SetAttribute("OGCFrame", inst1.CFrame)
+        end
+
+        if shouldtouch then
+            inst1.CFrame = inst2.CFrame
+        else
+            inst1.CFrame = inst1:GetAttribute("OGCFrame")
         end
     end
 end
@@ -936,6 +948,7 @@ function Functions.BridgePlatform(bridge)
         clone.Name = "NoFall"
         clone.Parent = barrier.Parent
         clone.CFrame = barrier.CFrame
+        clone.Position = barrier.Position
         clone.Size = Vector3.new(barrier.Size.X, barrier.Size.Y, 40)
         clone.Color = Color3.new(1, 1, 1)
         clone.Transparency = 1
@@ -1119,6 +1132,10 @@ function Functions.AvailablePrompt(prompt: ProximityPrompt)
         end
     end
 
+    if prompt:FindFirstAncestor("CandyRed") then
+        return false
+    end
+
     if prompt.KeyboardKeyCode ~= Enum.KeyCode.E then
         return false
     end
@@ -1146,6 +1163,14 @@ function Functions.AvailablePrompt(prompt: ProximityPrompt)
     return AutoInteractPrompts[prompt.Name] ~= nil
 end
 
+function Functions.GuidingLightESP(Guidance: BasePart)
+    Functions.ESP({
+        Object = Guidance,
+        Text = Guidance.Name,
+        Color = Options.GuidingLightESPColor.Value,
+        Type = "GuidingLight"
+    })
+end
 
 
 function Fly:Start()
@@ -1764,6 +1789,15 @@ Groupboxes.ESP:AddToggle("HidingSpotsESP", {
     Title = "Hiding Spot ESP Color",
 })
 
+if IsFloor.Mines then
+    Groupboxes.ESP:AddToggle("GuidingLightESP", {
+        Text = "Guidance",
+        Default = false
+    }):AddColorPicker("GuidingLightESPColor", {
+        Default = Color3.fromRGB(0, 0, 255)
+    })
+end
+
 Groupboxes.Settings = TabBox:AddTab("ESP Settings")
 
 Groupboxes.Settings:AddToggle("DistanceESP", {
@@ -2267,6 +2301,25 @@ Toggles.HidingSpotsESP:OnChanged(function(value)
     end
 end)
 
+if IsFloor.Mines then
+    Toggles.GuidingLightESP:OnChanged(function(value)
+        if value then
+            for _, v in pairs(workspace.CurrentCamera:GetChildren()) do
+                if v.Name == "Guidance" then
+                    task.spawn(Functions.GuidingLightESP, v)
+                end
+            end
+        end
+    end)
+
+    Options.GuidingLightESPColor:OnChanged(function(value)
+        for _, v in pairs(ESPTable.GuidingLight) do
+            v.CurrentSettings.Color = value
+            v.CurrentSettings.FillColor = value
+            v.CurrentSettings.OutlineColor = value
+        end
+    end)
+end
 Toggles.PlayerESP:OnChanged(function(value)
     if value then
         for _, player in pairs(Players:GetPlayers()) do
@@ -2683,6 +2736,12 @@ Library:GiveSignal(workspace.ChildAdded:Connect(function(child)
                 end
             end)
         end
+    end
+end))
+
+Library:GiveSignal(workspace.CurrentCamera.ChildAdded:Connect(function(child)
+    if IsFloor.Mines and Toggles.GuidingLightESP.Value then
+        task.spawn(Functions.GuidingLightESP, child)
     end
 end))
 
