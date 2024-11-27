@@ -57,21 +57,31 @@ function Fly:Start()
         end
             local direction = Vector3.new(0, 0, 0)
 
-            if not UserInputService:GetFocusedTextBox() then
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    direction += (Camera.CFrame.LookVector * self.FlySpeed)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    direction -= (Camera.CFrame.LookVector * self.FlySpeed)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                    direction -= (Camera.CFrame.RightVector * self.FlySpeed)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                    direction += (Camera.CFrame.RightVector * self.FlySpeed)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and self.SpaceShiftEnabled then
-                    direction -= (Camera.CFrame.UpVector * self.FlySpeed)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.Space) and self.SpaceShiftEnabled then
-                    direction += (Camera.CFrame.UpVector * self.FlySpeed)
-                end
-            end
+    if not UserInputService:GetFocusedTextBox() then
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            direction += (Camera.CFrame.LookVector * self.FlySpeed)
+        end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            direction -= (Camera.CFrame.LookVector * self.FlySpeed)
+        end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            direction -= (Camera.CFrame.RightVector * self.FlySpeed)
+        end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            direction += (Camera.CFrame.RightVector * self.FlySpeed)
+        end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and self.SpaceShiftEnabled then
+            direction -= (Camera.CFrame.UpVector * self.FlySpeed)
+        end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) and self.SpaceShiftEnabled then
+            direction += (Camera.CFrame.UpVector * self.FlySpeed)
+        end
+    end
 
            self.BodyVelocity.Velocity = direction
            self.BodyGyro.CFrame = Camera.CFrame
