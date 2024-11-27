@@ -29,9 +29,9 @@ local Fly = {
     FlySpeed = 30,
     SpaceShiftEnabled = true
 }
-
+local Toggling, Setting = false, false
 function Fly:Start()
-    if self.IsFlyEnabled then
+    if self.IsFlyEnabled and (not Toggling and not Setting) then
         return
     end
 
@@ -91,23 +91,27 @@ function Fly:Stop()
 end
 
 function Fly:Toggle()
-   self.IsFlyEnabled = not self.IsFlyEnabled
+    self.IsFlyEnabled = not self.IsFlyEnabled
+    Toggling = true
 
     if self.IsFlyEnabled then
         Fly:Start()
     else
         Fly:Stop()
     end
+
+    Toggling = false
 end
 
 function Fly:Set(value: boolean)
    self.IsFlyEnabled = value
-
+   Setting = true
     if value then
         Fly:Start()
     else
         Fly:Stop()
     end
+    Setting = false
 end
 
 return Fly
