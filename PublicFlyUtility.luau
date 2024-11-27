@@ -9,6 +9,7 @@
     Connection: Connection to the RunService.RenderStepped signal, this connection handles the actual flying.
     FlySpeed: Fly speed, defaults to 30. If you have a slider for this, make sure to update Fly.FlySpeed with the slider accordingly.
     SpaceShiftEnabled: If Space should make the player go straight up and if Left Shift should do the opposite. This can be disabled.
+    ShouldPlatformStand: If Humanoid.PlatformStand should be on when fly is on, and off when fly is off.
     Fly:Start(): A function that, when called, will turn flying on.
     Fly:Stop(): A function that, when called, will turn flying off.
     Fly:Toggle(): A function toggling the current state of flying (e.g if it was previously off, calling Fly:Toggle() would turn it on).
@@ -27,7 +28,8 @@ local Fly = {
     BodyVelocity = nil,
     Connection = nil,
     FlySpeed = 30,
-    SpaceShiftEnabled = true
+    SpaceShiftEnabled = true,
+    ShouldPlatformStand = false
 }
 local Toggling, Setting = false, false
 function Fly:Start()
@@ -48,6 +50,10 @@ function Fly:Start()
    self.Connection = RunService.RenderStepped:Connect(function()
         if not self.IsFlyEnabled then
             self.Connection:Disconnect()
+        end
+
+        if self.ShouldPlatformStand then
+            char.Humanoid.PlatformStand = true
         end
             local direction = Vector3.new(0, 0, 0)
 
@@ -87,6 +93,10 @@ function Fly:Stop()
     if self.BodyVelocity then
        self.BodyVelocity:Destroy()
        self.BodyVelocity = nil
+    end
+
+    if self.ShouldPlatformStand then
+        char.Humanoid.PlatformStand = false
     end
 end
 
